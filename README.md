@@ -1,5 +1,5 @@
 # WKWebViewRTC
-WebRTC library for WKWebView for Swift on iOS (based on cordova-plugin-iosrtc)
+WebRTC library for WKWebView for Swift on iOS (based on cordova-plugin-iosrtc: https://github.com/cordova-rtc/cordova-plugin-iosrtc)
 WebRTC iOS framework is M69 from: https://github.com/cordova-rtc/cordova-plugin-iosrtc/commit/77edf7e3325ebb4fb43e0d3f697d41f2e30bdc51
 
 
