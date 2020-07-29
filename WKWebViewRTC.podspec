@@ -33,9 +33,9 @@ TODO: Add long description of the pod here.
 
   s.source_files = 'WKWebViewRTC/Classes/**/*', 'WKWebViewRTC/Js/**/*.js'
   
-#   s.resource_bundles = {
-#     'WKWebViewRTC' => ['WKWebViewRTC/Js/**/*']
-#   }
+   s.resource_bundles = {
+     'WKWebViewRTC' => ['WKWebViewRTC/Js/jsWKWebViewRTC.js']
+   }
 
 #   s.public_header_files = 'Pod/Classes/**/*.h'
 #   s.frameworks = 'AVFoundation'

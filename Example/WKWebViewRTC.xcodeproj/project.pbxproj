@@ -17,8 +17,6 @@
 /* Begin PBXFileReference section */
 		081BDE7624D12628001896C7 /* WKWebViewRTC.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = WKWebViewRTC.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BBF29669602AC4D9879027C /* Pods-WKWebViewRTC_Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WKWebViewRTC_Tests.debug.xcconfig"; path = "Target Support Files/Pods-WKWebViewRTC_Tests/Pods-WKWebViewRTC_Tests.debug.xcconfig"; sourceTree = "<group>"; };
-		302EC6CEBBE8DBB33EA2E84C /* Pods_WKWebViewRTC_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_WKWebViewRTC_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		30EB38880F5EC836D0B1DCB7 /* Pods_WKWebViewRTC_Tests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_WKWebViewRTC_Tests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		30FBF30DE83E0C823AB35DF3 /* Pods-WKWebViewRTC_Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WKWebViewRTC_Tests.release.xcconfig"; path = "Target Support Files/Pods-WKWebViewRTC_Tests/Pods-WKWebViewRTC_Tests.release.xcconfig"; sourceTree = "<group>"; };
 		607FACD01AFB9204008FA782 /* WKWebViewRTC_Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WKWebViewRTC_Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACD41AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -111,8 +109,6 @@
 			isa = PBXGroup;
 			children = (
 				081BDE7624D12628001896C7 /* WKWebViewRTC.framework */,
-				302EC6CEBBE8DBB33EA2E84C /* Pods_WKWebViewRTC_Example.framework */,
-				30EB38880F5EC836D0B1DCB7 /* Pods_WKWebViewRTC_Tests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
