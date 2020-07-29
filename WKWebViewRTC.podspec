@@ -31,13 +31,13 @@ TODO: Add long description of the pod here.
 	s.swift_version = '4.2'
   s.ios.deployment_target = '11.0'
 
-  s.source_files = 'WKWebViewRTC/Classes/**/*'
+  s.source_files = 'WKWebViewRTC/Classes/**/*', 'WKWebViewRTC/Js/**/*.js'
   
 #   s.resource_bundles = {
 #     'WKWebViewRTC' => ['WKWebViewRTC/Js/**/*']
 #   }
 
-  # s.public_header_files = 'Pod/Classes/**/*.h'
+#   s.public_header_files = 'Pod/Classes/**/*.h'
 #   s.frameworks = 'AVFoundation'
    s.dependency 'GoogleWebRTC', '1.1.29229'
 end
