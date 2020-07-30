@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'WKWebViewRTC'
-  s.version          = '0.1.0'
+  s.version          = '0.2.0'
   s.summary          = 'WebRTC library for WKWebView for Swift on iOS'
 
 # This description is used to generate tags and improve search results.
@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
 #   * Finally, don't worry about the indent, CocoaPods strips it!
 
   s.description      = <<-DESC
-	WebRTC library for WKWebView for Swift on iOS (based on cordova-plugin-iosrtc: https://github.com/cordova-rtc/cordova-plugin-iosrtc) 
+	WebRTC library for WKWebView for Swift on iOS (based on cordova-plugin-iosrtc: https://github.com/cordova-rtc/cordova-plugin-iosrtc)
                        DESC
 
   s.homepage         = 'https://github.com/OpenTelecom/WKWebViewRTC'
