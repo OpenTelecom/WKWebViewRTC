@@ -22,7 +22,7 @@ pod 'WKWebViewRTC'
 
 ## Author
 
-JustDoIt9, twinkle999@hotmail.com
+Open Telecom Foundation
 
 ## License
 
