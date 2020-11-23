@@ -1115,7 +1115,7 @@ module.exports = yaetiEventTarget;
 
 },{}],10:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -1179,7 +1179,7 @@ Errors.detectDeprecatedCallbaksUsage = function detectDeprecatedCallbaksUsage(fu
 
 },{}],11:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -1278,7 +1278,7 @@ function nativeCallback(callbackId, status, argumentsAsJson)
 
 },{}],13:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -1413,7 +1413,7 @@ MediaDevices.prototype.getSupportedConstraints = function () {
 
 },{"./EventTarget":11,"./enumerateDevices":30,"./getUserMedia":31}],15:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -1912,7 +1912,7 @@ function onEvent(data) {
 
 },{"./EventTarget":11,"./IOSExec":12,"./MediaStreamTrack":17,"debug":1}],16:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -2323,7 +2323,7 @@ function getElementPositionAndSize() {
 
 },{"./EventTarget":11,"./IOSExec":12,"./MediaStream":15,"debug":1,"random-number":6}],17:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -2502,7 +2502,7 @@ function onEvent(data) {
 
 },{"./EventTarget":11,"./IOSExec":12,"./MediaTrackCapabilities":18,"./MediaTrackSettings":19,"./enumerateDevices":30,"debug":1}],18:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -2522,7 +2522,7 @@ function MediaTrackCapabilities(data) {
 
 },{}],19:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -2542,7 +2542,7 @@ function MediaTrackSettings(data) {
 
 },{}],20:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -2685,7 +2685,7 @@ function onEvent(data) {
 
 },{"./EventTarget":11,"./IOSExec":12,"debug":1,"random-number":6}],21:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -2927,7 +2927,7 @@ function onEvent(data) {
 
 },{"./EventTarget":11,"./IOSExec":12,"debug":1,"random-number":6}],22:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -3127,7 +3127,7 @@ function RTCIceCandidate(data) {
 },{}],23:[function(require,module,exports){
 (function (global){(function (){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -3973,7 +3973,7 @@ function onEvent(data) {
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./Errors":10,"./EventTarget":11,"./IOSExec":12,"./MediaStream":15,"./MediaStreamTrack":17,"./RTCDTMFSender":20,"./RTCDataChannel":21,"./RTCIceCandidate":22,"./RTCRtpReceiver":24,"./RTCRtpSender":25,"./RTCRtpTransceiver":26,"./RTCSessionDescription":27,"./RTCStatsReport":28,"./RTCStatsResponse":29,"debug":1,"random-number":6}],24:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -3996,7 +3996,7 @@ function RTCRtpReceiver(data) {
 
 },{}],25:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -4052,7 +4052,7 @@ RTCRtpSender.prototype.replaceTrack = function (withTrack) {
 };
 },{}],26:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -4081,7 +4081,7 @@ function RTCRtpTransceiver(data) {
 
 },{}],27:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -4105,7 +4105,7 @@ function RTCSessionDescription(data) {
 
 },{}],28:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -4136,7 +4136,7 @@ function RTCStatsReport(data) {
 
 },{}],29:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -4167,7 +4167,7 @@ function RTCStatsResponse(data) {
 
 },{}],30:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -4226,7 +4226,7 @@ function getMediaDeviceInfos(devices) {
 
 },{"./Errors":10,"./IOSExec":12,"./MediaDeviceInfo":13,"debug":1}],31:[function(require,module,exports){
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.15
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
