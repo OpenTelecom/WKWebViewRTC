@@ -22,22 +22,17 @@ Pod::Spec.new do |s|
                        DESC
 
   s.homepage         = 'https://github.com/OpenTelecom/WKWebViewRTC'
-  # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'OpenTelecom' => 'contact@OpenTele.com' }
   s.source           = { :git => 'https://github.com/OpenTelecom/WKWebViewRTC.git', :tag => s.version.to_s }
-  # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
 	s.swift_version = '4.2'
   s.ios.deployment_target = '11.0'
 
   s.source_files = 'WKWebViewRTC/Classes/**/*'
 	s.resources = 'WKWebViewRTC/Js/jsWKWebViewRTC.js'
-#	 s.resource_bundles = {
-#		 'WKWebViewRTC' => ['WKWebViewRTC/Js/jsWKWebViewRTC.js']
-#	 }
 
-#   s.public_header_files = 'Pod/Classes/**/*.h'
-#   s.frameworks = 'AVFoundation'
    s.dependency 'GoogleWebRTC', '1.1.29229'
+
+   s.xcconfig       = { 'ENABLE_BITCODE' => 'NO' }
 end
