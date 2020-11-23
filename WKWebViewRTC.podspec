@@ -34,5 +34,5 @@ Pod::Spec.new do |s|
 
    s.dependency 'GoogleWebRTC', '1.1.29229'
 
-   s.xcconfig       = { 'ENABLE_BITCODE' => 'NO' }
+   s.xcconfig       = { 'ENABLE_BITCODE' => 'NO', 'ONLY_ACTIVE_ARCH' => 'Yes' }
 end
