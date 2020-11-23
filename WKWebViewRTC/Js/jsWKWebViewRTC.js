@@ -1,17 +1,26 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.jsWKWebViewRTC = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-(function (process){
+(function (process){(function (){
 /* eslint-env browser */
 
 /**
  * This is the web browser implementation of `debug()`.
  */
 
-exports.log = log;
 exports.formatArgs = formatArgs;
 exports.save = save;
 exports.load = load;
 exports.useColors = useColors;
 exports.storage = localstorage();
+exports.destroy = (() => {
+	let warned = false;
+
+	return () => {
+		if (!warned) {
+			warned = true;
+			console.warn('Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.');
+		}
+	};
+})();
 
 /**
  * Colors.
@@ -172,18 +181,14 @@ function formatArgs(args) {
 }
 
 /**
- * Invokes `console.log()` when available.
- * No-op when `console.log` is not a "function".
+ * Invokes `console.debug()` when available.
+ * No-op when `console.debug` is not a "function".
+ * If `console.debug` is not available, falls back
+ * to `console.log`.
  *
  * @api public
  */
-function log(...args) {
-	// This hackery is required for IE8/9, where
-	// the `console.log` function doesn't have 'apply'
-	return typeof console === 'object' &&
-		console.log &&
-		console.log(...args);
-}
+exports.log = console.debug || console.log || (() => {});
 
 /**
  * Save `namespaces`.
@@ -265,7 +270,7 @@ formatters.j = function (v) {
 	}
 };
 
-}).call(this,require('_process'))
+}).call(this)}).call(this,require('_process'))
 },{"./common":2,"_process":5}],2:[function(require,module,exports){
 
 /**
@@ -281,15 +286,11 @@ function setup(env) {
 	createDebug.enable = enable;
 	createDebug.enabled = enabled;
 	createDebug.humanize = require('ms');
+	createDebug.destroy = destroy;
 
 	Object.keys(env).forEach(key => {
 		createDebug[key] = env[key];
 	});
-
-	/**
-	* Active `debug` instances.
-	*/
-	createDebug.instances = [];
 
 	/**
 	* The currently active debug mode names, and names to skip.
@@ -332,6 +333,7 @@ function setup(env) {
 	*/
 	function createDebug(namespace) {
 		let prevTime;
+		let enableOverride = null;
 
 		function debug(...args) {
 			// Disabled?
@@ -361,7 +363,7 @@ function setup(env) {
 			args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
 				// If we encounter an escaped % then don't increase the array index
 				if (match === '%%') {
-					return match;
+					return '%';
 				}
 				index++;
 				const formatter = createDebug.formatters[format];
@@ -384,31 +386,26 @@ function setup(env) {
 		}
 
 		debug.namespace = namespace;
-		debug.enabled = createDebug.enabled(namespace);
 		debug.useColors = createDebug.useColors();
-		debug.color = selectColor(namespace);
-		debug.destroy = destroy;
+		debug.color = createDebug.selectColor(namespace);
 		debug.extend = extend;
-		// Debug.formatArgs = formatArgs;
-		// debug.rawLog = rawLog;
+		debug.destroy = createDebug.destroy; // XXX Temporary. Will be removed in the next major release.
 
-		// env-specific initialization logic for debug instances
+		Object.defineProperty(debug, 'enabled', {
+			enumerable: true,
+			configurable: false,
+			get: () => enableOverride === null ? createDebug.enabled(namespace) : enableOverride,
+			set: v => {
+				enableOverride = v;
+			}
+		});
+
+		// Env-specific initialization logic for debug instances
 		if (typeof createDebug.init === 'function') {
 			createDebug.init(debug);
 		}
 
-		createDebug.instances.push(debug);
-
 		return debug;
-	}
-
-	function destroy() {
-		const index = createDebug.instances.indexOf(this);
-		if (index !== -1) {
-			createDebug.instances.splice(index, 1);
-			return true;
-		}
-		return false;
 	}
 
 	function extend(namespace, delimiter) {
@@ -447,11 +444,6 @@ function setup(env) {
 			} else {
 				createDebug.names.push(new RegExp('^' + namespaces + '$'));
 			}
-		}
-
-		for (i = 0; i < createDebug.instances.length; i++) {
-			const instance = createDebug.instances[i];
-			instance.enabled = createDebug.enabled(instance.namespace);
 		}
 	}
 
@@ -525,6 +517,14 @@ function setup(env) {
 			return val.stack || val.message;
 		}
 		return val;
+	}
+
+	/**
+	* XXX DO NOT USE. This is a temporary stub function.
+	* XXX It WILL be removed in the next major release.
+	*/
+	function destroy() {
+		console.warn('Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.');
 	}
 
 	createDebug.enable(createDebug.load());
@@ -970,14 +970,14 @@ module.exports =
 };
 
 },{"./lib/Event":8,"./lib/EventTarget":9}],8:[function(require,module,exports){
-(function (global){
+(function (global){(function (){
 /**
  * In browsers export the native Event interface.
  */
 
 module.exports = global.Event;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],9:[function(require,module,exports){
 function yaetiEventTarget()
 {
@@ -1114,6 +1114,15 @@ yaetiEventTarget.prototype.dispatchEvent = function(event)
 module.exports = yaetiEventTarget;
 
 },{}],10:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose an object with WebRTC Errors.
  */
@@ -1167,7 +1176,17 @@ Errors.detectDeprecatedCallbaksUsage = function detectDeprecatedCallbaksUsage(fu
 		throw new Error('Callbacks are not supported by "' + funcName + '" anymore, use Promise instead.');
 	}
 };
+
 },{}],11:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Dependencies.
  */
@@ -1197,7 +1216,17 @@ EventTarget.prototype.dispatchEvent = function (event) {
  * Expose the EventTarget class.
  */
 module.exports = EventTarget;
+
 },{"yaeti":7}],12:[function(require,module,exports){
+//
+//  IOSExec.js
+//  WKWebViewRTC
+//
+//  Created by Open Telecom Foundation on 2020/6/30.
+//  Copyright © 2020 Open Telecom Foundation. All rights reserved.
+//  The MIT License (MIT)
+//
+
 module.exports = execNative;
 module.exports.execNative = execNative;
 module.exports.nativeCallback = nativeCallback;
@@ -1246,7 +1275,17 @@ function nativeCallback(callbackId, status, argumentsAsJson)
         console.log(msg)
     }
 }
+
 },{}],13:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the MediaDeviceInfo class.
  */
@@ -1281,6 +1320,107 @@ function MediaDeviceInfo(data) {
 }
 
 },{}],14:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.15
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
+ /**
+ * Expose the MediaDevices class.
+ */
+module.exports = MediaDevices;
+
+/**
+ * Spec: https://w3c.github.io/mediacapture-main/#dom-mediadevices
+ */
+
+/**
+ * Dependencies.
+ */
+var
+	EventTarget = require('./EventTarget'),
+	getUserMedia = require('./getUserMedia'),
+	enumerateDevices = require('./enumerateDevices');
+
+function MediaDevices(data) {
+
+	//ondevicechange
+	//enumerateDevices
+	//getDisplayMedia
+	//getSupportedConstraints
+	//getUserMedia
+
+	var self = this;
+
+	// Make this an EventTarget.
+	EventTarget.call(self);
+
+	data = data || {};
+}
+
+MediaDevices.prototype = Object.create(EventTarget.prototype);
+MediaDevices.prototype.constructor = MediaDevices;
+
+MediaDevices.prototype.getUserMedia = function (constraints) {
+	return getUserMedia(constraints);
+};
+
+MediaDevices.prototype.enumerateDevices = function () {
+	return enumerateDevices();
+};
+
+MediaDevices.prototype.getSupportedConstraints = function () {
+	return {
+		// Supported
+		"height": true,
+		"width": true,
+		"deviceId": true,
+		"frameRate": true,
+		"sampleRate": true,
+		"aspectRatio": true,
+		// Not Supported
+		"autoGainControl": false,
+		"brightness": false,
+		"channelCount": false,
+		"colorTemperature": false,
+		"contrast": false,
+		"echoCancellation": false,
+		"exposureCompensation": false,
+		"exposureMode": false,
+		"exposureTime": false,
+		"facingMode": true,
+		"focusDistance": false,
+		"focusMode": false,
+		"groupId": false,
+		"iso": false,
+		"latency": false,
+		"noiseSuppression": false,
+		"pointsOfInterest": false,
+		"resizeMode": false,
+		"sampleSize": false,
+		"saturation": false,
+		"sharpness": false,
+		"torch": false,
+		"whiteBalanceMode": false,
+		"zoom": false
+	};
+};
+
+
+},{"./EventTarget":11,"./enumerateDevices":30,"./getUserMedia":31}],15:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the MediaStream class.
  */
@@ -1464,7 +1604,15 @@ MediaStream.create = function (dataFromEvent) {
 		}
 	}
 
-	// Todo :
+	for (trackId in dataFromEvent.videoTracks) {
+		if (dataFromEvent.videoTracks.hasOwnProperty(trackId)) {
+			track = new MediaStreamTrack(dataFromEvent.videoTracks[trackId]);
+
+			stream._videoTracks[track.id] = track;
+
+			addListenerForTrackEnded.call(stream, track);
+		}
+	}
 
 	return stream;
 };
@@ -1492,9 +1640,16 @@ MediaStream.prototype.getAudioTracks = function () {
 MediaStream.prototype.getVideoTracks = function () {
 	debug('getVideoTracks()');
 
-	// Todo :
-	
-	return [];
+	var tracks = [],
+	id;
+
+	for (id in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(id)) {
+			tracks.push(this._videoTracks[id]);
+		}
+	}
+
+	return tracks;
 };
 
 
@@ -1510,7 +1665,11 @@ MediaStream.prototype.getTracks = function () {
 		}
 	}
 
-	// Todo :
+	for (id in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(id)) {
+			tracks.push(this._videoTracks[id]);
+		}
+	}
 
 	return tracks;
 };
@@ -1536,7 +1695,7 @@ MediaStream.prototype.addTrack = function (track) {
 	if (track.kind === 'audio') {
 		this._audioTracks[track.id] = track;
 	} else if (track.kind === 'video') {
-		// Todo :
+		this._videoTracks[track.id] = track;
 	} else {
 		throw new Error('unknown kind attribute: ' + track.kind);
 	}
@@ -1564,7 +1723,7 @@ MediaStream.prototype.removeTrack = function (track) {
 	if (track.kind === 'audio') {
 		delete this._audioTracks[track.id];
 	} else if (track.kind === 'video') {
-		// Todo :
+		delete this._videoTracks[track.id];
 	} else {
 		throw new Error('unknown kind attribute: ' + track.kind);
 	}
@@ -1578,8 +1737,12 @@ MediaStream.prototype.removeTrack = function (track) {
 
 
 MediaStream.prototype.clone = function () {
-	debug('clone()');
-	return new MediaStream(this);
+	var newStream = MediaStream();
+	this.getTracks().forEach(function (track) {
+		newStream.addTrack(track.clone());
+	});
+
+	return newStream;
 };
 
 // Backwards compatible API.
@@ -1594,7 +1757,11 @@ MediaStream.prototype.stop = function () {
 		}
 	}
 
-	// Todo :
+	for (trackId in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(trackId)) {
+			this._videoTracks[trackId].stop();
+		}
+	}
 };
 
 
@@ -1666,7 +1833,13 @@ function checkActive() {
 		}
 	}
 
-	// Todo :
+	for (trackId in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(trackId)) {
+			if (this._videoTracks[trackId].readyState !== 'ended') {
+				return;
+			}
+		}
+	}
 
 	debug('all tracks are ended, releasing MediaStream');
 	release();
@@ -1697,7 +1870,7 @@ function onEvent(data) {
 			if (track.kind === 'audio') {
 				this._audioTracks[track.id] = track;
 			} else if (track.kind === 'video') {
-				// Todo :
+				this._videoTracks[track.id] = track;
 			}
 			addListenerForTrackEnded.call(this, track);
 
@@ -1715,7 +1888,8 @@ function onEvent(data) {
 				track = this._audioTracks[data.track.id];
 				delete this._audioTracks[data.track.id];
 			} else if (data.track.kind === 'video') {
-				// Todo :
+				track = this._videoTracks[data.track.id];
+				delete this._videoTracks[data.track.id];
 			}
 
 			if (!track) {
@@ -1727,13 +1901,436 @@ function onEvent(data) {
 
 			this.dispatchEvent(event);
 
+			// Also emit 'update' for the MediaStreamRenderer.
+			this.dispatchEvent(new Event('update'));
+
 			// Check whether the MediaStream still is active.
 			checkActive.call(this);
 			break;
 	}
 }
 
-},{"./EventTarget":11,"./IOSExec":12,"./MediaStreamTrack":15,"debug":1}],15:[function(require,module,exports){
+},{"./EventTarget":11,"./IOSExec":12,"./MediaStreamTrack":17,"debug":1}],16:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
+/**
+ * Expose the MediaStreamRenderer class.
+ */
+module.exports = MediaStreamRenderer;
+
+
+/**
+ * Dependencies.
+ */
+var
+	debug = require('debug')('iosrtc:MediaStreamRenderer'),
+	exec = require('./IOSExec'),
+	randomNumber = require('random-number').generator({min: 10000, max: 99999, integer: true}),
+	EventTarget = require('./EventTarget'),
+	MediaStream = require('./MediaStream');
+
+
+function MediaStreamRenderer(element) {
+	debug('new() | [element:"%s"]', element);
+
+	var self = this;
+
+	// Make this an EventTarget.
+	EventTarget.call(this);
+
+	if (!(element instanceof HTMLElement)) {
+		throw new Error('a valid HTMLElement is required');
+	}
+
+	// Public atributes.
+	this.element = element;
+	this.stream = undefined;
+	this.videoWidth = undefined;
+	this.videoHeight = undefined;
+
+	// Private attributes.
+	this.id = randomNumber();
+
+	function onResultOK(data) {
+		onEvent.call(self, data);
+	}
+
+	exec.execNative(onResultOK, null, 'WKWebViewRTC', 'new_MediaStreamRenderer', [this.id]);
+
+	this.refresh();
+
+	// TODO cause video resizing jiggling add semaphore
+	//this.refreshInterval = setInterval(function () {
+	//	self.refresh(self);
+	//}, 500);
+
+	element.render = this;
+}
+
+MediaStreamRenderer.prototype = Object.create(EventTarget.prototype);
+MediaStreamRenderer.prototype.constructor = MediaStreamRenderer;
+
+MediaStreamRenderer.prototype.render = function (stream) {
+	debug('render() [stream:%o]', stream);
+
+	var self = this;
+
+	if (!(stream instanceof MediaStream.originalMediaStream)) {
+		throw new Error('render() requires a MediaStream instance as argument');
+	}
+
+	self.stream = stream;
+
+	exec.execNative(null, null, 'WKWebViewRTC', 'MediaStreamRenderer_render', [self.id, stream.id]);
+
+	// Subscribe to 'update' event so we call native mediaStreamChanged() on it.
+	stream.addEventListener('update', function () {
+		if (self.stream !== stream) {
+			return;
+		}
+
+		debug('MediaStream emits "update", calling native mediaStreamChanged()');
+
+		exec.execNative(null, null, 'WKWebViewRTC', 'MediaStreamRenderer_mediaStreamChanged', [self.id]);
+	});
+
+	// Subscribe to 'inactive' event and emit "close" so the video element can react.
+	stream.addEventListener('inactive', function () {
+		if (self.stream !== stream) {
+			return;
+		}
+
+		debug('MediaStream emits "inactive", emiting "close" and closing this MediaStreamRenderer');
+
+		self.dispatchEvent(new Event('close'));
+		self.close();
+	});
+
+	if (stream.connected) {
+		connected();
+	// Otherwise subscribe to 'connected' event to emulate video elements events.
+	} else {
+		stream.addEventListener('connected', function () {
+			if (self.stream !== stream) {
+				return;
+			}
+
+			connected();
+		});
+	}
+
+	function connected() {
+		// Emit video events.
+		self.element.dispatchEvent(new Event('loadedmetadata'));
+		self.element.dispatchEvent(new Event('loadeddata'));
+		self.element.dispatchEvent(new Event('canplay'));
+		self.element.dispatchEvent(new Event('canplaythrough'));
+	}
+};
+
+MediaStreamRenderer.prototype.save = function (callback) {
+	debug('save()');
+
+	if (!this.stream) {
+		callback(null);
+		return;
+	}
+
+	function onResultOK(data) {
+		callback(data);
+	}
+
+	function onResultError() {
+		callback(null);
+	}
+
+	exec.execNative(onResultOK, onResultError, 'WKWebViewRTC', 'MediaStreamRenderer_save', [this.id]);
+};
+
+MediaStreamRenderer.prototype.refresh = function () {
+	debug('refresh()');
+
+	var elementPositionAndSize = getElementPositionAndSize.call(this),
+		computedStyle,
+		videoRatio,
+		elementRatio,
+		elementLeft = elementPositionAndSize.left,
+		elementTop = elementPositionAndSize.top,
+		elementWidth = elementPositionAndSize.width,
+		elementHeight = elementPositionAndSize.height,
+		videoViewWidth,
+		videoViewHeight,
+		visible,
+		opacity,
+		zIndex,
+		mirrored,
+		objectFit,
+		clip,
+		borderRadius,
+		paddingTop,
+		paddingBottom,
+		paddingLeft,
+		paddingRight,
+		self = this;
+
+	computedStyle = window.getComputedStyle(this.element);
+
+	// get padding values
+	paddingTop = parseInt(computedStyle.paddingTop) | 0;
+	paddingBottom = parseInt(computedStyle.paddingBottom) | 0;
+	paddingLeft = parseInt(computedStyle.paddingLeft) | 0;
+	paddingRight = parseInt(computedStyle.paddingRight) | 0;
+
+	// fix position according to padding
+	elementLeft += paddingLeft;
+	elementTop += paddingTop;
+
+	// fix width and height according to padding
+	elementWidth -= (paddingLeft + paddingRight);
+	elementHeight -= (paddingTop + paddingBottom);
+
+	videoViewWidth = elementWidth;
+	videoViewHeight = elementHeight;
+
+	// visible
+	if (computedStyle.visibility === 'hidden') {
+		visible = false;
+	} else {
+		visible = !!this.element.offsetHeight;  // Returns 0 if element or any parent is hidden.
+	}
+
+	// opacity
+	opacity = parseFloat(computedStyle.opacity);
+
+	// zIndex
+	zIndex = parseFloat(computedStyle.zIndex) || parseFloat(this.element.style.zIndex) || 0;
+
+	// mirrored (detect "-webkit-transform: scaleX(-1);" or equivalent)
+	if (computedStyle.transform === 'matrix(-1, 0, 0, 1, 0, 0)' ||
+		computedStyle['-webkit-transform'] === 'matrix(-1, 0, 0, 1, 0, 0)') {
+		mirrored = true;
+	} else {
+		mirrored = false;
+	}
+
+	// objectFit ('contain' is set as default value)
+	objectFit = computedStyle.objectFit || 'contain';
+
+	// clip
+	if (objectFit === 'none') {
+		clip = false;
+	} else {
+		clip = true;
+	}
+
+	// borderRadius
+	borderRadius = parseFloat(computedStyle.borderRadius);
+	if (/%$/.test(borderRadius)) {
+		borderRadius = Math.min(elementHeight, elementWidth) * borderRadius;
+	}
+
+	/**
+	 * No video yet, so just update the UIView with the element settings.
+	 */
+
+	if (!this.videoWidth || !this.videoHeight) {
+		debug('refresh() | no video track yet');
+
+		nativeRefresh.call(this);
+		return;
+	}
+
+	videoRatio = this.videoWidth / this.videoHeight;
+
+	/**
+	 * Element has no width and/or no height.
+	 */
+
+	if (!elementWidth || !elementHeight) {
+		debug('refresh() | video element has 0 width and/or 0 height');
+
+		nativeRefresh.call(this);
+		return;
+	}
+
+	/**
+	 * Set video view position and size.
+	 */
+
+	elementRatio = elementWidth / elementHeight;
+
+	switch (objectFit) {
+		case 'cover':
+			// The element has higher or equal width/height ratio than the video.
+			if (elementRatio >= videoRatio) {
+				videoViewWidth = elementWidth;
+				videoViewHeight = videoViewWidth / videoRatio;
+			// The element has lower width/height ratio than the video.
+			} else if (elementRatio < videoRatio) {
+				videoViewHeight = elementHeight;
+				videoViewWidth = videoViewHeight * videoRatio;
+			}
+			break;
+
+		case 'fill':
+			videoViewHeight = elementHeight;
+			videoViewWidth = elementWidth;
+			break;
+
+		case 'none':
+			videoViewHeight = this.videoHeight;
+			videoViewWidth = this.videoWidth;
+			break;
+
+		case 'scale-down':
+			// Same as 'none'.
+			if (this.videoWidth <= elementWidth && this.videoHeight <= elementHeight) {
+				videoViewHeight = this.videoHeight;
+				videoViewWidth = this.videoWidth;
+			// Same as 'contain'.
+			} else {
+				// The element has higher or equal width/height ratio than the video.
+				if (elementRatio >= videoRatio) {
+					videoViewHeight = elementHeight;
+					videoViewWidth = videoViewHeight * videoRatio;
+				// The element has lower width/height ratio than the video.
+				} else if (elementRatio < videoRatio) {
+					videoViewWidth = elementWidth;
+					videoViewHeight = videoViewWidth / videoRatio;
+				}
+			}
+			break;
+
+		// 'contain'.
+		default:
+			objectFit = 'contain';
+			// The element has higher or equal width/height ratio than the video.
+			if (elementRatio >= videoRatio) {
+				videoViewHeight = elementHeight;
+				videoViewWidth = videoViewHeight * videoRatio;
+			// The element has lower width/height ratio than the video.
+			} else if (elementRatio < videoRatio) {
+				videoViewWidth = elementWidth;
+				videoViewHeight = videoViewWidth / videoRatio;
+			}
+			break;
+	}
+
+	nativeRefresh.call(this);
+
+	function hash(str) {
+		var hash = 5381,
+		i = str.length;
+
+		while (i) {
+			hash = (hash * 33) ^ str.charCodeAt(--i);
+		}
+
+		return hash >>> 0;
+	}
+
+	function nativeRefresh() {
+		var data = {
+			elementLeft: Math.round(elementLeft),
+			elementTop: Math.round(elementTop),
+			elementWidth: Math.round(elementWidth),
+			elementHeight: Math.round(elementHeight),
+			videoViewWidth: Math.round(videoViewWidth),
+			videoViewHeight: Math.round(videoViewHeight),
+			visible: visible,
+			opacity: opacity,
+			zIndex: zIndex,
+			mirrored: mirrored,
+			objectFit: objectFit,
+			clip: clip,
+			borderRadius: borderRadius
+		},
+		newRefreshCached = hash(JSON.stringify(data));
+
+		if (newRefreshCached === self.refreshCached) {
+			return;
+		}
+
+		self.refreshCached = newRefreshCached;
+
+		debug('refresh() | [data:%o]', data);
+
+		exec.execNative(null, null, 'WKWebViewRTC', 'MediaStreamRenderer_refresh', [this.id, data]);
+	}
+};
+
+
+MediaStreamRenderer.prototype.close = function () {
+	debug('close()');
+
+	if (!this.stream) {
+		return;
+	}
+	this.stream = undefined;
+
+	exec.execNative(null, null, 'WKWebViewRTC', 'MediaStreamRenderer_close', [this.id]);
+	if (this.refreshInterval) {
+		clearInterval(this.refreshInterval);
+		delete this.refreshInterval;
+	}
+};
+
+
+/**
+ * Private API.
+ */
+
+
+function onEvent(data) {
+	var type = data.type,
+		event;
+
+	debug('onEvent() | [type:%s, data:%o]', type, data);
+
+	switch (type) {
+		case 'videoresize':
+			this.videoWidth = data.size.width;
+			this.videoHeight = data.size.height;
+			this.refresh();
+
+			event = new Event(type);
+			event.videoWidth = data.size.width;
+			event.videoHeight = data.size.height;
+			this.dispatchEvent(event);
+
+			break;
+	}
+}
+
+
+function getElementPositionAndSize() {
+	var rect = this.element.getBoundingClientRect();
+
+	return {
+		left:   rect.left + this.element.clientLeft,
+		top:    rect.top + this.element.clientTop,
+		width:  this.element.clientWidth,
+		height: this.element.clientHeight
+	};
+}
+
+},{"./EventTarget":11,"./IOSExec":12,"./MediaStream":15,"debug":1,"random-number":6}],17:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the MediaStreamTrack class.
  */
@@ -1759,6 +2356,10 @@ var
 // Save original MediaStreamTrack
 var originalMediaStreamTrack = window.MediaStreamTrack || function dummyMediaStreamTrack() {};
 
+function newMediaStreamTrackId() {
+	return window.crypto.getRandomValues(new Uint32Array(4)).join('-');
+ }
+  
 function MediaStreamTrack(dataFromEvent) {
 	if (!dataFromEvent) {
 		throw new Error('Illegal constructor');
@@ -1817,9 +2418,17 @@ MediaStreamTrack.prototype.applyConstraints = function () {
 };
 
 MediaStreamTrack.prototype.clone = function () {
-	//throw new Error('Not implemented.');
-	// SHAM
-	return this;
+	var newTrackId = newMediaStreamTrackId();
+
+	exec.execNative(null, null, 'WKWebViewRTC', 'MediaStreamTrack_clone', [this.id, newTrackId]);
+
+	return new MediaStreamTrack({
+ 		id: newTrackId,
+ 		kind: this.kind,
+ 		label: this.label,
+ 		readyState: this.readyState,
+ 		enabled: this.enabled
+ 	});
 };
 
 MediaStreamTrack.prototype.getCapabilities = function () {
@@ -1891,7 +2500,16 @@ function onEvent(data) {
 	}
 }
 
-},{"./EventTarget":11,"./IOSExec":12,"./MediaTrackCapabilities":16,"./MediaTrackSettings":17,"./enumerateDevices":28,"debug":1}],16:[function(require,module,exports){
+},{"./EventTarget":11,"./IOSExec":12,"./MediaTrackCapabilities":18,"./MediaTrackSettings":19,"./enumerateDevices":30,"debug":1}],18:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the MediaTrackSettings class.
  */
@@ -1902,7 +2520,16 @@ function MediaTrackCapabilities(data) {
 	data = data || {};
 }
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the MediaTrackSettings class.
  */
@@ -1913,7 +2540,16 @@ function MediaTrackSettings(data) {
 	data = data || {};
 }
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCDTMFSender class.
  */
@@ -2047,7 +2683,16 @@ function onEvent(data) {
 	}
 }
 
-},{"./EventTarget":11,"./IOSExec":12,"debug":1,"random-number":6}],19:[function(require,module,exports){
+},{"./EventTarget":11,"./IOSExec":12,"debug":1,"random-number":6}],21:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCDataChannel class.
  */
@@ -2280,7 +2925,16 @@ function onEvent(data) {
 	}
 }
 
-},{"./EventTarget":11,"./IOSExec":12,"debug":1,"random-number":6}],20:[function(require,module,exports){
+},{"./EventTarget":11,"./IOSExec":12,"debug":1,"random-number":6}],22:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCIceCandidate class.
  */
@@ -2469,8 +3123,18 @@ function RTCIceCandidate(data) {
 		this.relatedPort = iceCandidateFields.remotePort || null;
 	}
 }
-},{}],21:[function(require,module,exports){
-(function (global){
+
+},{}],23:[function(require,module,exports){
+(function (global){(function (){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCPeerConnection class.
  */
@@ -2539,6 +3203,8 @@ function RTCPeerConnection(pcConfig, pcConstraints) {
 	this.pcId = randomNumber();
 	this.localStreams = {};
 	this.remoteStreams = {};
+	this.localTracks = {};
+	this.remoteTracks = {};
 
 	function onResultOK(data) {
 		onEvent.call(self, data);
@@ -2871,34 +3537,38 @@ RTCPeerConnection.prototype.getRemoteStreams = function () {
 };
 
 RTCPeerConnection.prototype.getReceivers = function () {
-	var tracks = [],
+	var self = this,
+		tracks = [],
 		id;
 
-	for (id in this.remoteStreams) {
-		if (this.remoteStreams.hasOwnProperty(id)) {
-			tracks = tracks.concat(this.remoteStreams[id].getTracks());
+	for (id in this.remoteTracks) {
+		if (this.remoteTracks.hasOwnProperty(id)) {
+			tracks.push(this.remoteTracks[id]);
 		}
 	}
 
 	return tracks.map(function (track) {
 		return new RTCRtpReceiver({
+			pc: self,
 			track: track
 		});
 	});
 };
 
 RTCPeerConnection.prototype.getSenders = function () {
-	var tracks = [],
-		id;
+	var self = this,
+	tracks = [],
+	id;
 
-	for (id in this.localStreams) {
-		if (this.localStreams.hasOwnProperty(id)) {
-			tracks = tracks.concat(this.localStreams[id].getTracks());
+	for (id in this.localTracks) {
+		if (this.localTracks.hasOwnProperty(id)) {
+			tracks.push(this.localTracks[id]);
 		}
 	}
 
 	return tracks.map(function (track) {
 		return new RTCRtpSender({
+			pc: self,
 			track: track
 		});
 	});
@@ -2963,6 +3633,12 @@ RTCPeerConnection.prototype.addTrack = function (track, stream) {
 	if (!stream) {
 		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_addTrack', [this.pcId, track.id, null]);
 	}
+
+	this.localTracks[track.id] = track;
+	
+	return new RTCRtpSender({
+		track: track
+	});
 };
 
 RTCPeerConnection.prototype.removeTrack = function (sender) {
@@ -2991,10 +3667,23 @@ RTCPeerConnection.prototype.removeTrack = function (sender) {
 				stream.removeTrack(track);
 
 				exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeTrack', [this.pcId, track.id, stream.id]);
+				delete this.localTracks[track.id];
 				break;
 			}
 		}
 	}
+
+	// No Stream matched remove track without stream
+	if (!stream) {
+		for (id in this.localTracks) {
+			if (this.localTracks.hasOwnProperty(id)) {
+				if (track.id === id) {
+					exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeTrack', [this.pcId, track.id, null]);	
+					delete this.localTracks[track.id];
+				}
+			}
+		}
+	}	
 };
 
 RTCPeerConnection.prototype.getStreamById = function (id) {
@@ -3005,6 +3694,8 @@ RTCPeerConnection.prototype.getStreamById = function (id) {
 
 
 RTCPeerConnection.prototype.addStream = function (stream) {
+	var self = this;
+
 	if (isClosed.call(this)) {
 		throw new Errors.InvalidStateError('peerconnection is closed');
 	}
@@ -3022,11 +3713,20 @@ RTCPeerConnection.prototype.addStream = function (stream) {
 
 	this.localStreams[stream.id] = stream;
 
+	stream.getTracks().forEach(function (track) {
+		self.localTracks[track.id] = track;
+		track.addEventListener('ended', function () {
+			delete self.localTracks[track.id];
+		});
+	});
+
 	exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_addStream', [this.pcId, stream.id]);
 };
 
 
 RTCPeerConnection.prototype.removeStream = function (stream) {
+	var self = this;
+
 	if (isClosed.call(this)) {
 		throw new Errors.InvalidStateError('peerconnection is closed');
 	}
@@ -3043,6 +3743,10 @@ RTCPeerConnection.prototype.removeStream = function (stream) {
 	}
 
 	delete this.localStreams[stream.id];
+
+	stream.getTracks().forEach(function (track) {
+		delete self.localTracks[track.id];
+	});
 
 	exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeStream', [this.pcId, stream.id]);
 };
@@ -3218,15 +3922,23 @@ function onEvent(data) {
 			break;
 
 		case 'track':
-			var track = new MediaStreamTrack(data.track),
-				stream = this.remoteStreams[data.streamId] || MediaStream.create(data.stream),
-				receiver = new RTCRtpReceiver({ track: track }),
-				transceiver = new RTCRtpTransceiver({ receiver: receiver });
+			var track = event.track = new MediaStreamTrack(data.track);
+			event.receiver = new RTCRtpReceiver({ track: track });
+			event.transceiver = new RTCRtpTransceiver({ receiver: event.receiver });
+			event.streams = [];
 
-			event.track = track;
-			event.receiver = receiver;
-			event.transceiver = transceiver;
-			event.streams = [stream];
+			// Add stream only if available in case of Unified-Plan of track event without stream
+			if (data.stream && data.streamId) {
+				var stream = this.remoteStreams[data.streamId] || MediaStream.create(data.stream);
+				event.streams.push(stream);
+			}
+
+			// Store remote track
+			this.remoteTracks[track.id] = track;
+			track.addEventListener('ended', function () {
+				delete self.remoteTracks[track.id];
+			});
+			
 			break;
 
 		case 'addstream':
@@ -3258,8 +3970,17 @@ function onEvent(data) {
 	this.dispatchEvent(event);
 }
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Errors":10,"./EventTarget":11,"./IOSExec":12,"./MediaStream":14,"./MediaStreamTrack":15,"./RTCDTMFSender":18,"./RTCDataChannel":19,"./RTCIceCandidate":20,"./RTCRtpReceiver":22,"./RTCRtpSender":23,"./RTCRtpTransceiver":24,"./RTCSessionDescription":25,"./RTCStatsReport":26,"./RTCStatsResponse":27,"debug":1,"random-number":6}],22:[function(require,module,exports){
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./Errors":10,"./EventTarget":11,"./IOSExec":12,"./MediaStream":15,"./MediaStreamTrack":17,"./RTCDTMFSender":20,"./RTCDataChannel":21,"./RTCIceCandidate":22,"./RTCRtpReceiver":24,"./RTCRtpSender":25,"./RTCRtpTransceiver":26,"./RTCSessionDescription":27,"./RTCStatsReport":28,"./RTCStatsResponse":29,"debug":1,"random-number":6}],24:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCRtpReceiver class.
  */
@@ -3269,10 +3990,20 @@ module.exports = RTCRtpReceiver;
 function RTCRtpReceiver(data) {
 	data = data || {};
 
+	this._pc = data.pc;
 	this.track = data.track;
 }
 
-},{}],23:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCRtpSender class.
  */
@@ -3281,6 +4012,7 @@ module.exports = RTCRtpSender;
 function RTCRtpSender(data) {
 	data = data || {};
 
+    this._pc = data.pc;
 	this.track = data.track;
     this.params = data.params || {};
 }
@@ -3293,7 +4025,41 @@ RTCRtpSender.prototype.setParameters = function (params) {
     Object.assign(this.params, params);
     return Promise.resolve(this.params);
 };
-},{}],24:[function(require,module,exports){
+
+RTCRtpSender.prototype.replaceTrack = function (withTrack) {
+	var self = this,
+		pc = self._pc;
+
+	return new Promise(function (resolve, reject) {
+		pc.removeTrack(self);
+		pc.addTrack(withTrack);
+		self.track = withTrack;
+
+		// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/negotiationneeded_event
+		var event = new Event('negotiationneeded');
+		pc.dispatchEvent('negotiationneeded', event);
+
+		pc.addEventListener("signalingstatechange", function listener() {
+			if (pc.signalingState === "closed") {
+				pc.removeEventListener("signalingstatechange", listener);
+				reject();
+			} else if (pc.signalingState === "stable") {
+				pc.removeEventListener("signalingstatechange", listener);
+				resolve();
+			}
+		});
+	});
+};
+},{}],26:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCRtpTransceiver class.
  */
@@ -3312,7 +4078,17 @@ function RTCRtpTransceiver(data) {
 // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpTransceiverDirection
 // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpTransceiver/mid
 // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpTransceiver/stop
-},{}],25:[function(require,module,exports){
+
+},{}],27:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCSessionDescription class.
  */
@@ -3327,7 +4103,16 @@ function RTCSessionDescription(data) {
 	this.sdp = data.sdp;
 }
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCStatsReport class.
  */
@@ -3349,7 +4134,16 @@ function RTCStatsReport(data) {
 	};
 }
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the RTCStatsResponse class.
  */
@@ -3371,7 +4165,16 @@ function RTCStatsResponse(data) {
 	};
 }
 
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the enumerateDevices function.
  */
@@ -3421,7 +4224,16 @@ function getMediaDeviceInfos(devices) {
 	return mediaDeviceInfos;
 }
 
-},{"./Errors":10,"./IOSExec":12,"./MediaDeviceInfo":13,"debug":1}],29:[function(require,module,exports){
+},{"./Errors":10,"./IOSExec":12,"./MediaDeviceInfo":13,"debug":1}],31:[function(require,module,exports){
+/*
+ * cordova-plugin-iosrtc v6.0.12
+ * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
+ * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
+ * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
+ * Copyright 2019 Cordova-RTC (https://github.com/cordova-rtc)
+ * The MIT License (MIT)
+ */
+
 /**
  * Expose the getUserMedia function.
  */
@@ -3557,7 +4369,232 @@ function getUserMedia(constraints) {
 
 	// Get video constraints
 	if (videoRequested) {
-		// Todo : 
+		
+		// Handle object video constraints
+		newConstraints.video = {};
+
+		// Handle Stupid not up-to-date webrtc-adapter
+		// Note: Firefox [38+] does support a subset of constraints with getUserMedia(), but not the outdated syntax that Chrome and Opera are using.
+		// The mandatory / optional syntax was deprecated a in 2014, and minWidth and minHeight the year before that.
+		if (
+			typeof constraints.video === 'object' &&
+				(typeof constraints.video.optional === 'object' || typeof constraints.video.mandatory === 'object')
+		) {
+
+			var videoConstraints = {};
+
+			if (Array.isArray(constraints.video.optional)) {
+
+				/*
+				Example of constraints.video.optional:
+					{
+						"optional": [
+							{
+								"minWidth": 640
+							},
+							{
+								"maxWidth": 640
+							},
+							{
+								"minHeight": 480
+							},
+							{
+								"maxHeight": 480
+							},
+							{
+								"sourceId": "com.apple.avfoundation.avcapturedevice.built-in_video:0"
+							}
+						]
+					}
+				*/
+
+				// Convert optional array to object
+				Object.values(constraints.video.optional).forEach(function (optional) {
+					var optionalConstraintName = Object.keys(optional)[0],
+						optionalConstraintValue = optional[optionalConstraintName];
+					videoConstraints[optionalConstraintName] = Array.isArray(optionalConstraintValue) ?
+																optionalConstraintValue[0] : optionalConstraintValue;
+				});
+
+			} else if (typeof constraints.video.mandatory === 'object') {
+				videoConstraints = constraints.video.mandatory;
+			}
+
+			if (typeof videoConstraints.sourceId === 'string') {
+				newConstraints.video.deviceId = {
+					ideal: videoConstraints.sourceId
+				};
+			}
+
+			if (isPositiveInteger(videoConstraints.minWidth)) {
+				newConstraints.video.width = {
+					min: videoConstraints.minWidth
+				};
+			}
+
+			if (isPositiveInteger(videoConstraints.maxWidth)) {
+				newConstraints.video.width = newConstraints.video.width || {};
+				newConstraints.video.width.max = videoConstraints.maxWidth;
+			}
+
+			if (isPositiveInteger(videoConstraints.minHeight)) {
+				newConstraints.video.height = {
+					min: videoConstraints.minHeight
+				};
+			}
+
+			if (isPositiveInteger(videoConstraints.maxHeight)) {
+				newConstraints.video.height = newConstraints.video.height || {};
+				newConstraints.video.height.max = videoConstraints.maxHeight;
+			}
+
+			if (isPositiveFloat(videoConstraints.minFrameRate)) {
+				newConstraints.video.frameRate = {
+					min: parseFloat(videoConstraints.minFrameRate, 10)
+				};
+			}
+
+			if (isPositiveFloat(videoConstraints.maxFrameRate)) {
+				newConstraints.video.frameRate = newConstraints.video.frameRate || {};
+				newConstraints.video.frameRate.max = parseFloat(videoConstraints.maxFrameRate, 10);
+			}
+		}
+
+		// Get requested video deviceId.
+		if (typeof constraints.video.deviceId === 'string') {
+			newConstraints.video.deviceId = {
+				exact: constraints.video.deviceId
+			};
+
+		// Also check video sourceId (mangled by adapter.js).
+		} else if (typeof constraints.video.sourceId === 'string') {
+			newConstraints.video.deviceId = {
+				exact: constraints.video.sourceId
+			};
+
+		// Also check deviceId.(exact|ideal)
+		} else if (typeof constraints.video.deviceId === 'object') {
+			if (!!constraints.video.deviceId.exact) {
+				newConstraints.video.deviceId = {
+					exact: Array.isArray(constraints.video.deviceId.exact) ?
+						constraints.video.deviceId.exact[0] : constraints.video.deviceId.exact
+				};
+			} else if (!!constraints.video.deviceId.ideal) {
+				newConstraints.video.deviceId = {
+					ideal: Array.isArray(constraints.video.deviceId.ideal) ?
+							constraints.video.deviceId.ideal[0] : constraints.video.deviceId.ideal
+				};
+			}
+		}
+
+		// Get requested width min/max, exact.
+		if (typeof constraints.video.width === 'object') {
+			newConstraints.video.width = {};
+			if (isPositiveInteger(constraints.video.width.min)) {
+				newConstraints.video.width.min = constraints.video.width.min;
+			}
+			if (isPositiveInteger(constraints.video.width.max)) {
+				newConstraints.video.width.max = constraints.video.width.max;
+			}
+			if (isPositiveInteger(constraints.video.width.exact)) {
+				newConstraints.video.width.exact = constraints.video.width.exact;
+			}
+			if (isPositiveInteger(constraints.video.width.ideal)) {
+				newConstraints.video.width.ideal = constraints.video.width.ideal;
+			}
+
+		// Get requested width long as exact
+		} else if (isPositiveInteger(constraints.video.width)) {
+			newConstraints.video.width = {
+				exact: constraints.video.width
+			};
+		}
+
+		// Get requested height min/max, exact.
+		if (typeof constraints.video.height === 'object') {
+			newConstraints.video.height = {};
+			if (isPositiveInteger(constraints.video.height.min)) {
+				newConstraints.video.height.min = constraints.video.height.min;
+			}
+			if (isPositiveInteger(constraints.video.height.max)) {
+				newConstraints.video.height.max = constraints.video.height.max;
+			}
+			if (isPositiveInteger(constraints.video.height.exact)) {
+				newConstraints.video.height.exact = constraints.video.height.exact;
+			}
+			if (isPositiveInteger(constraints.video.height.ideal)) {
+				newConstraints.video.height.ideal = constraints.video.height.ideal;
+			}
+
+		// Get requested height long as exact
+		} else if (isPositiveInteger(constraints.video.height)) {
+			newConstraints.video.height = {
+				exact: constraints.video.height
+			};
+		}
+
+		// Get requested frameRate min/max.
+		if (typeof constraints.video.frameRate === 'object') {
+			newConstraints.video.frameRate = {};
+			if (isPositiveFloat(constraints.video.frameRate.min)) {
+				newConstraints.video.frameRate.min = parseFloat(constraints.video.frameRate.min, 10);
+			}
+			if (isPositiveFloat(constraints.video.frameRate.max)) {
+				newConstraints.video.frameRate.max = parseFloat(constraints.video.frameRate.max, 10);
+			}
+			if (isPositiveInteger(constraints.video.frameRate.exact)) {
+				newConstraints.video.frameRate.exact = constraints.video.frameRate.exact;
+			}
+			if (isPositiveInteger(constraints.video.frameRate.ideal)) {
+				newConstraints.video.frameRate.ideal = constraints.video.frameRate.ideal;
+			}
+
+		// Get requested frameRate double as exact
+		} else if (isPositiveFloat(constraints.video.frameRate)) {
+			newConstraints.video.frameRate = {
+				exact: parseFloat(constraints.video.frameRate, 10)
+			};
+		}
+
+		// get aspectRatio (e.g 1.7777777777777777)
+		// TODO ConstrainDouble min, max
+		if (typeof constraints.video.aspectRatio === 'object') {
+			newConstraints.video.aspectRatio = {};
+			if (isPositiveFloat(constraints.video.aspectRatio.min)) {
+				newConstraints.video.aspectRatio.min = parseFloat(constraints.video.aspectRatio.min, 10);
+			}
+			if (isPositiveFloat(constraints.video.aspectRatio.max)) {
+				newConstraints.video.aspectRatio.max = parseFloat(constraints.video.aspectRatio.max, 10);
+			}
+			if (isPositiveInteger(constraints.video.aspectRatio.exact)) {
+				newConstraints.video.aspectRatio.exact = constraints.video.aspectRatio.exact;
+			}
+			if (isPositiveInteger(constraints.video.aspectRatio.ideal)) {
+				newConstraints.video.aspectRatio.ideal = constraints.video.aspectRatio.ideal;
+			}
+		} else if (isPositiveFloat(constraints.video.aspectRatio)) {
+			newConstraints.video.aspectRatio = {
+				exact: parseFloat(constraints.video.aspectRatio, 10)
+			};
+		}
+
+		// get facingMode (e.g environment, user)
+		// TODO ConstrainDOMStringParameters ideal, exact
+		if (typeof constraints.video.facingMode === 'string') {
+			newConstraints.video.facingMode = {
+				exact: constraints.video.facingMode
+			};
+		} else if (typeof constraints.video.facingMode === 'object') {
+			if (typeof constraints.video.facingMode.exact === 'string') {
+				newConstraints.video.facingMode = {
+					exact: constraints.video.facingMode.exact
+				};
+			} else if (typeof constraints.video.facingMode.ideal === 'string') {
+				newConstraints.video.facingMode = {
+					ideal: constraints.video.facingMode.ideal
+				};
+			}
+		}
 	}
 
 	// Get audio constraints
@@ -3647,13 +4684,27 @@ function getUserMedia(constraints) {
 	});
 }
 
-},{"./Errors":10,"./IOSExec":12,"./MediaStream":14,"debug":1}],30:[function(require,module,exports){
-(function (global){
+},{"./Errors":10,"./IOSExec":12,"./MediaStream":15,"debug":1}],32:[function(require,module,exports){
+(function (global){(function (){
+//
+//  iosrtc.js
+//  WKWebViewRTC
+//
+//  Created by Open Telecom Foundation on 2020/6/30.
+//  Copyright © 2020 Open Telecom Foundation. All rights reserved.
+//  The MIT License (MIT)
+//
+
 /**
  * Variables.
  */
 
 var
+	// Dictionary of MediaStreamRenderers.
+	// - key: MediaStreamRenderer id.
+	// - value: MediaStreamRenderer.
+	mediaStreamRenderers = {},
+
 	// Dictionary of MediaStreams.
 	// - key: MediaStream blobId.
 	// - value: MediaStream.
@@ -3672,8 +4723,10 @@ var
 	RTCPeerConnection      = require('./RTCPeerConnection'),
 	RTCSessionDescription  = require('./RTCSessionDescription'),
 	RTCIceCandidate        = require('./RTCIceCandidate'),
+	MediaDevices           = require('./MediaDevices'),
 	MediaStream            = require('./MediaStream'),
-	MediaStreamTrack       = require('./MediaStreamTrack');
+	MediaStreamTrack       = require('./MediaStreamTrack'),
+	videoElementsHandler   = require('./videoElementsHandler');
 
 
 /**
@@ -3687,8 +4740,15 @@ module.exports = {
 	RTCPeerConnection:     RTCPeerConnection,
 	RTCSessionDescription: RTCSessionDescription,
 	RTCIceCandidate:       RTCIceCandidate,
+	MediaDevices:          MediaDevices,
 	MediaStream:           MediaStream,
 	MediaStreamTrack:      MediaStreamTrack,
+
+	// Expose a function to refresh current videos rendering a MediaStream.
+	refreshVideos:         videoElementsHandler.refreshVideos,
+
+	// Expose a function to handle a video not yet inserted in the DOM.
+	observeVideo:          videoElementsHandler.observeVideo,
 
 	// Select audio output (earpiece or speaker).
 	selectAudioOutput:     selectAudioOutput,
@@ -3712,6 +4772,7 @@ module.exports = {
 	dump:                  dump,
 
 	// Debug Stores to see what happens internally.
+	mediaStreamRenderers:  mediaStreamRenderers,
 	mediaStreams:          mediaStreams,
 	nativeCallback:		   exec.nativeCallback
 };
@@ -3721,9 +4782,17 @@ turnOnSpeaker(true);
 requestPermission(true, true, function (result) {
 	console.log('requestPermission.result', result);
 	});
+
 domready(function () {
-	
+	// Let the MediaStream class and the videoElementsHandler share same MediaStreams container.
 	MediaStream.setMediaStreams(mediaStreams);
+	videoElementsHandler(mediaStreams, mediaStreamRenderers);
+
+	// refreshVideos on device orientation change to resize peers video
+	// while local video will resize du orientation change
+	window.addEventListener('resize', function () {
+		videoElementsHandler.refreshVideos();
+	});
 });
 
 function selectAudioOutput(output) {
@@ -3825,7 +4894,7 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	}
 
 	if (!navigator.mediaDevices) {
-		navigator.mediaDevices = {};
+		navigator.mediaDevices = new MediaDevices();
 	}
 
 	// Restore Callback support
@@ -3845,12 +4914,428 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.MediaStream                      = MediaStream;
 	window.webkitMediaStream                = MediaStream;
 	window.MediaStreamTrack                 = MediaStreamTrack;
+
+	// Apply CanvasRenderingContext2D.drawImage monkey patch
+	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
+	CanvasRenderingContext2D.prototype.drawImage = function (arg) {
+		var args = Array.prototype.slice.call(arguments);
+		var context = this;
+		if (arg instanceof HTMLVideoElement && arg.render) {
+			arg.render.save(function (data) {
+			    var img = new window.Image();
+			    img.addEventListener("load", function () {
+			    	args.splice(0, 1, img.src);
+			        drawImage.apply(context, args);
+			    });
+			    img.setAttribute("src", "data:image/jpg;base64," + data);
+		  	});
+		} else {
+			return drawImage.apply(context, args);
+		}
+	};
 }
 
 function dump() {
 	exec.execNative(null, null, 'WKWebViewRTC', 'dump', []);
 }
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./IOSExec":12,"./MediaStream":14,"./MediaStreamTrack":15,"./RTCIceCandidate":20,"./RTCPeerConnection":21,"./RTCSessionDescription":25,"./enumerateDevices":28,"./getUserMedia":29,"debug":1,"domready":3}]},{},[30])(30)
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./IOSExec":12,"./MediaDevices":14,"./MediaStream":15,"./MediaStreamTrack":17,"./RTCIceCandidate":22,"./RTCPeerConnection":23,"./RTCSessionDescription":27,"./enumerateDevices":30,"./getUserMedia":31,"./videoElementsHandler":33,"debug":1,"domready":3}],33:[function(require,module,exports){
+/**
+ * Expose a function that must be called when the library is loaded.
+ * And also a helper function.
+ */
+module.exports = videoElementsHandler;
+module.exports.observeVideo = observeVideo;
+module.exports.refreshVideos = refreshVideos;
+
+
+/**
+ * Dependencies.
+ */
+var
+	debug = require('debug')('iosrtc:videoElementsHandler'),
+	MediaStreamRenderer = require('./MediaStreamRenderer'),
+
+
+/**
+ * Local variables.
+ */
+
+	// RegExp for Blob URI.
+	BLOB_INTERNAL_URI_REGEX = new RegExp(/^blob:/),
+
+	// Dictionary of MediaStreamRenderers (provided via module argument).
+	// - key: MediaStreamRenderer id.
+	// - value: MediaStreamRenderer.
+	mediaStreamRenderers,
+
+	// Dictionary of MediaStreams (provided via module argument).
+	// - key: MediaStream blobId.
+	// - value: MediaStream.
+	mediaStreams,
+
+	// Video element mutation observer.
+	videoObserver = new MutationObserver(function (mutations) {
+		var i, numMutations, mutation, video;
+
+		for (i = 0, numMutations = mutations.length; i < numMutations; i++) {
+			mutation = mutations[i];
+
+			// HTML video element.
+			video = mutation.target;
+
+			// .srcObject removed.
+			if (!video.srcObject && !video.src) {
+				// If this video element was previously handling a MediaStreamRenderer, release it.
+				releaseMediaStreamRenderer(video);
+				continue;
+			}
+
+			handleVideo(video);
+		}
+	}),
+
+	// DOM mutation observer.
+	domObserver = new MutationObserver(function (mutations) {
+		var
+			i, numMutations, mutation,
+			j, numNodes, node;
+
+		for (i = 0, numMutations = mutations.length; i < numMutations; i++) {
+			mutation = mutations[i];
+
+			// Check if there has been addition or deletion of nodes.
+			if (mutation.type !== 'childList') {
+				continue;
+			}
+
+			// Check added nodes.
+			for (j = 0, numNodes = mutation.addedNodes.length; j < numNodes; j++) {
+				node = mutation.addedNodes[j];
+
+				checkNewNode(node);
+			}
+
+			// Check removed nodes.
+			for (j = 0, numNodes = mutation.removedNodes.length; j < numNodes; j++) {
+				node = mutation.removedNodes[j];
+
+				checkRemovedNode(node);
+			}
+		}
+
+		function checkNewNode(node) {
+			var j, childNode;
+
+			if (node.nodeName === 'VIDEO') {
+				debug('new video element added');
+
+				// Avoid same node firing more than once (really, may happen in some cases).
+				if (node._iosrtcVideoHandled) {
+					return;
+				}
+				node._iosrtcVideoHandled = true;
+
+				// Observe changes in the video element.
+				observeVideo(node);
+			} else {
+				for (j = 0; j < node.childNodes.length; j++) {
+					childNode = node.childNodes.item(j);
+
+					checkNewNode(childNode);
+				}
+			}
+		}
+
+		function checkRemovedNode(node) {
+			var j, childNode;
+
+			if (node.nodeName === 'VIDEO') {
+				debug('video element removed');
+
+				// If this video element was previously handling a MediaStreamRenderer, release it.
+				releaseMediaStreamRenderer(node);
+				delete node._iosrtcVideoHandled;
+			} else {
+				for (j = 0; j < node.childNodes.length; j++) {
+					childNode = node.childNodes.item(j);
+
+					checkRemovedNode(childNode);
+				}
+			}
+		}
+	});
+
+function refreshVideos() {
+	debug('refreshVideos()');
+
+	var id;
+
+	for (id in mediaStreamRenderers) {
+		if (mediaStreamRenderers.hasOwnProperty(id)) {
+			mediaStreamRenderers[id].refresh();
+		}
+	}
+}
+
+function videoElementsHandler(_mediaStreams, _mediaStreamRenderers) {
+	var
+		existingVideos = document.querySelectorAll('video'),
+		i, len, video;
+
+	mediaStreams = _mediaStreams;
+	mediaStreamRenderers = _mediaStreamRenderers;
+
+	// Search the whole document for already existing HTML video elements and observe them.
+	for (i = 0, len = existingVideos.length; i < len; i++) {
+		video = existingVideos.item(i);
+
+		debug('video element found');
+
+		observeVideo(video);
+	}
+
+	// Observe the whole document for additions of new HTML video elements and observe them.
+	domObserver.observe(document, {
+		// Set to true if additions and removals of the target node's child elements (including text nodes) are to
+		// be observed.
+		childList: true,
+		// Set to true if mutations to target's attributes are to be observed.
+		attributes: false,
+		// Set to true if mutations to target's data are to be observed.
+		characterData: false,
+		// Set to true if mutations to not just target, but also target's descendants are to be observed.
+		subtree: true,
+		// Set to true if attributes is set to true and target's attribute value before the mutation needs to be
+		// recorded.
+		attributeOldValue: false,
+		// Set to true if characterData is set to true and target's data before the mutation needs to be recorded.
+		characterDataOldValue: false
+		// Set to an array of attribute local names (without namespace) if not all attribute mutations need to be
+		// observed.
+		// attributeFilter:
+	});
+}
+
+
+function observeVideo(video) {
+	debug('observeVideo()');
+
+	// If the video already has a srcObject property but is not yet handled by the plugin
+	// then handle it now.
+	var hasStream = video.srcObject || video.src;
+	if (hasStream && !video._iosrtcMediaStreamRendererId) {
+		handleVideo(video);
+	}
+
+	// Add .srcObject observer to the video element.
+	videoObserver.observe(video, {
+		// Set to true if additions and removals of the target node's child elements (including text
+		// nodes) are to be observed.
+		childList: false,
+		// Set to true if mutations to target's attributes are to be observed.
+		attributes: true,
+		// Set to true if mutations to target's data are to be observed.
+		characterData: false,
+		// Set to true if mutations to not just target, but also target's descendants are to be observed.
+		subtree: false,
+		// Set to true if attributes is set to true and target's attribute value before the mutation
+		// needs to be recorded.
+		attributeOldValue: false,
+		// Set to true if characterData is set to true and target's data before the mutation needs to be
+		// recorded.
+		characterDataOldValue: false,
+		// Set to an array of attribute local names (without namespace) if not all attribute mutations
+		// need to be observed.
+		// srcObject DO not trigger MutationObserver
+		attributeFilter: ['srcObject', 'src']
+	});
+
+	// MutationObserver fail to trigger when using srcObject on ony tested browser.
+	// But video.srcObject = new MediaStream() will trigger onloadstart and
+	// video.srcObject = null will trigger onemptied events.
+
+	video.addEventListener('loadstart', function () {
+
+		var hasStream = video.srcObject || video.src;
+
+		if (hasStream && !video._iosrtcMediaStreamRendererId) {
+			// If this video element was NOT previously handling a MediaStreamRenderer, release it.
+			handleVideo(video);
+		} else if (hasStream && video._iosrtcMediaStreamRendererId) {
+			// The video element has received a new srcObject.
+			var stream = video.srcObject;
+			if (stream && typeof stream.getBlobId === 'function') {
+				// Release previous renderer
+				releaseMediaStreamRenderer(video);
+				// Install new renderer
+				provideMediaStreamRenderer(video, stream.getBlobId());
+			}
+		}
+	});
+
+	video.addEventListener('emptied', function () {
+		var hasStream = video.srcObject || video.src;
+		if (!hasStream && video._iosrtcMediaStreamRendererId) {
+			// If this video element was previously handling a MediaStreamRenderer, release it.
+			releaseMediaStreamRenderer(video);
+		}
+	});
+
+	// Intercept video 'error' events if it's due to the attached MediaStream.
+	video.addEventListener('error', function (event) {
+		if (video.error.code === window.MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && BLOB_INTERNAL_URI_REGEX.test(video.src)) {
+			debug('stopping "error" event propagation for video element');
+
+			event.stopImmediatePropagation();
+		}
+	});
+}
+
+
+/**
+ * Private API.
+ */
+
+function handleVideo(video) {
+	var
+		stream;
+
+	// The app has set video.srcObject.
+	if (video.srcObject) {
+		stream = video.srcObject;
+		if (stream && typeof stream.getBlobId === 'function') {
+
+			if (!stream.getBlobId()) {
+				// If this video element was previously handling a MediaStreamRenderer, release it.
+				releaseMediaStreamRenderer(video);
+
+				return;
+			}
+
+			provideMediaStreamRenderer(video, stream.getBlobId());
+		}
+	} else if (video.src) {
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', video.src, true);
+		xhr.responseType = 'blob';
+		xhr.onload = function () {
+			if (xhr.status !== 200) {
+				// If this video element was previously handling a MediaStreamRenderer, release it.
+				releaseMediaStreamRenderer(video);
+
+				return;
+			}
+
+			var reader = new FileReader();
+
+			// Some versions of Safari fail to set onloadend property, some others do not react
+			// on 'loadend' event. Try everything here.
+			try {
+				reader.onloadend = onloadend;
+			} catch (error) {
+				reader.addEventListener('loadend', onloadend);
+			}
+			reader.readAsText(xhr.response);
+
+			function onloadend() {
+				var mediaStreamBlobId = reader.result;
+
+				// The retrieved URL does not point to a MediaStream.
+				if (!mediaStreamBlobId || typeof mediaStreamBlobId !== 'string') {
+					// If this video element was previously handling a MediaStreamRenderer, release it.
+					releaseMediaStreamRenderer(video);
+
+					return;
+				}
+
+				provideMediaStreamRenderer(video, mediaStreamBlobId);
+			}
+		};
+		xhr.send();
+	}
+}
+
+
+function provideMediaStreamRenderer(video, mediaStreamBlobId) {
+	var
+		mediaStream = mediaStreams[mediaStreamBlobId],
+		mediaStreamRenderer = mediaStreamRenderers[video._iosrtcMediaStreamRendererId];
+
+	if (!mediaStream) {
+		releaseMediaStreamRenderer(video);
+
+		return;
+	}
+
+	if (mediaStreamRenderer) {
+		mediaStreamRenderer.render(mediaStream);
+	} else {
+		mediaStreamRenderer = new MediaStreamRenderer(video);
+		mediaStreamRenderer.render(mediaStream);
+
+		mediaStreamRenderers[mediaStreamRenderer.id] = mediaStreamRenderer;
+		video._iosrtcMediaStreamRendererId = mediaStreamRenderer.id;
+	}
+
+	// Close the MediaStreamRenderer of this video if it emits "close" event.
+	mediaStreamRenderer.addEventListener('close', function () {
+		if (mediaStreamRenderers[video._iosrtcMediaStreamRendererId] !== mediaStreamRenderer) {
+			return;
+		}
+
+		releaseMediaStreamRenderer(video);
+	});
+
+	// Override some <video> properties.
+	// NOTE: This is a terrible hack but it works.
+	Object.defineProperties(video, {
+		videoWidth: {
+			configurable: true,
+			get: function () {
+				return mediaStreamRenderer.videoWidth || 0;
+			}
+		},
+		videoHeight: {
+			configurable: true,
+			get: function () {
+				return mediaStreamRenderer.videoHeight || 0;
+			}
+		},
+		readyState: {
+			configurable: true,
+			get: function () {
+				if (mediaStreamRenderer && mediaStreamRenderer.stream && mediaStreamRenderer.stream.connected) {
+					return video.HAVE_ENOUGH_DATA;
+				} else {
+					return video.HAVE_NOTHING;
+				}
+			}
+		}
+	});
+}
+
+function releaseMediaStreamRenderer(video) {
+	if (!video._iosrtcMediaStreamRendererId) {
+		return;
+	}
+
+	var mediaStreamRenderer = mediaStreamRenderers[video._iosrtcMediaStreamRendererId];
+
+	if (mediaStreamRenderer) {
+		delete mediaStreamRenderers[video._iosrtcMediaStreamRendererId];
+		mediaStreamRenderer.close();
+	}
+
+	delete video._iosrtcMediaStreamRendererId;
+
+	// Remove overrided <video> properties.
+	delete video.videoWidth;
+	delete video.videoHeight;
+	delete video.readyState;
+}
+
+},{"./MediaStreamRenderer":16,"debug":1}]},{},[32])(32)
 });

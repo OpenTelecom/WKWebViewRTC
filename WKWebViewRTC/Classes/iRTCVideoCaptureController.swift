@@ -217,7 +217,7 @@ class iRTCVideoCaptureController : NSObject {
 		let deviceId = self.getConstrainDOMStringValue(constraint: "deviceId");
 		if (deviceId.count > 0) {
 			device = AVCaptureDevice(uniqueID: deviceId)
-			if (!device!.isConnected) {
+			if (device != nil && !device!.isConnected) {
 				device = nil
 			}
 			

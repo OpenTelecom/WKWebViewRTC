@@ -75,6 +75,8 @@ function RTCPeerConnection(pcConfig, pcConstraints) {
 	this.pcId = randomNumber();
 	this.localStreams = {};
 	this.remoteStreams = {};
+	this.localTracks = {};
+	this.remoteTracks = {};
 
 	function onResultOK(data) {
 		onEvent.call(self, data);
@@ -407,34 +409,38 @@ RTCPeerConnection.prototype.getRemoteStreams = function () {
 };
 
 RTCPeerConnection.prototype.getReceivers = function () {
-	var tracks = [],
+	var self = this,
+		tracks = [],
 		id;
 
-	for (id in this.remoteStreams) {
-		if (this.remoteStreams.hasOwnProperty(id)) {
-			tracks = tracks.concat(this.remoteStreams[id].getTracks());
+	for (id in this.remoteTracks) {
+		if (this.remoteTracks.hasOwnProperty(id)) {
+			tracks.push(this.remoteTracks[id]);
 		}
 	}
 
 	return tracks.map(function (track) {
 		return new RTCRtpReceiver({
+			pc: self,
 			track: track
 		});
 	});
 };
 
 RTCPeerConnection.prototype.getSenders = function () {
-	var tracks = [],
-		id;
+	var self = this,
+	tracks = [],
+	id;
 
-	for (id in this.localStreams) {
-		if (this.localStreams.hasOwnProperty(id)) {
-			tracks = tracks.concat(this.localStreams[id].getTracks());
+	for (id in this.localTracks) {
+		if (this.localTracks.hasOwnProperty(id)) {
+			tracks.push(this.localTracks[id]);
 		}
 	}
 
 	return tracks.map(function (track) {
 		return new RTCRtpSender({
+			pc: self,
 			track: track
 		});
 	});
@@ -499,6 +505,12 @@ RTCPeerConnection.prototype.addTrack = function (track, stream) {
 	if (!stream) {
 		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_addTrack', [this.pcId, track.id, null]);
 	}
+
+	this.localTracks[track.id] = track;
+	
+	return new RTCRtpSender({
+		track: track
+	});
 };
 
 RTCPeerConnection.prototype.removeTrack = function (sender) {
@@ -527,10 +539,23 @@ RTCPeerConnection.prototype.removeTrack = function (sender) {
 				stream.removeTrack(track);
 
 				exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeTrack', [this.pcId, track.id, stream.id]);
+				delete this.localTracks[track.id];
 				break;
 			}
 		}
 	}
+
+	// No Stream matched remove track without stream
+	if (!stream) {
+		for (id in this.localTracks) {
+			if (this.localTracks.hasOwnProperty(id)) {
+				if (track.id === id) {
+					exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeTrack', [this.pcId, track.id, null]);	
+					delete this.localTracks[track.id];
+				}
+			}
+		}
+	}	
 };
 
 RTCPeerConnection.prototype.getStreamById = function (id) {
@@ -541,6 +566,8 @@ RTCPeerConnection.prototype.getStreamById = function (id) {
 
 
 RTCPeerConnection.prototype.addStream = function (stream) {
+	var self = this;
+
 	if (isClosed.call(this)) {
 		throw new Errors.InvalidStateError('peerconnection is closed');
 	}
@@ -558,11 +585,20 @@ RTCPeerConnection.prototype.addStream = function (stream) {
 
 	this.localStreams[stream.id] = stream;
 
+	stream.getTracks().forEach(function (track) {
+		self.localTracks[track.id] = track;
+		track.addEventListener('ended', function () {
+			delete self.localTracks[track.id];
+		});
+	});
+
 	exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_addStream', [this.pcId, stream.id]);
 };
 
 
 RTCPeerConnection.prototype.removeStream = function (stream) {
+	var self = this;
+
 	if (isClosed.call(this)) {
 		throw new Errors.InvalidStateError('peerconnection is closed');
 	}
@@ -579,6 +615,10 @@ RTCPeerConnection.prototype.removeStream = function (stream) {
 	}
 
 	delete this.localStreams[stream.id];
+
+	stream.getTracks().forEach(function (track) {
+		delete self.localTracks[track.id];
+	});
 
 	exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeStream', [this.pcId, stream.id]);
 };
@@ -754,15 +794,23 @@ function onEvent(data) {
 			break;
 
 		case 'track':
-			var track = new MediaStreamTrack(data.track),
-				stream = this.remoteStreams[data.streamId] || MediaStream.create(data.stream),
-				receiver = new RTCRtpReceiver({ track: track }),
-				transceiver = new RTCRtpTransceiver({ receiver: receiver });
+			var track = event.track = new MediaStreamTrack(data.track);
+			event.receiver = new RTCRtpReceiver({ track: track });
+			event.transceiver = new RTCRtpTransceiver({ receiver: event.receiver });
+			event.streams = [];
 
-			event.track = track;
-			event.receiver = receiver;
-			event.transceiver = transceiver;
-			event.streams = [stream];
+			// Add stream only if available in case of Unified-Plan of track event without stream
+			if (data.stream && data.streamId) {
+				var stream = this.remoteStreams[data.streamId] || MediaStream.create(data.stream);
+				event.streams.push(stream);
+			}
+
+			// Store remote track
+			this.remoteTracks[track.id] = track;
+			track.addEventListener('ended', function () {
+				delete self.remoteTracks[track.id];
+			});
+			
 			break;
 
 		case 'addstream':

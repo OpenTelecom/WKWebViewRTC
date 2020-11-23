@@ -12,6 +12,11 @@
  */
 
 var
+	// Dictionary of MediaStreamRenderers.
+	// - key: MediaStreamRenderer id.
+	// - value: MediaStreamRenderer.
+	mediaStreamRenderers = {},
+
 	// Dictionary of MediaStreams.
 	// - key: MediaStream blobId.
 	// - value: MediaStream.
@@ -30,8 +35,10 @@ var
 	RTCPeerConnection      = require('./RTCPeerConnection'),
 	RTCSessionDescription  = require('./RTCSessionDescription'),
 	RTCIceCandidate        = require('./RTCIceCandidate'),
+	MediaDevices           = require('./MediaDevices'),
 	MediaStream            = require('./MediaStream'),
-	MediaStreamTrack       = require('./MediaStreamTrack');
+	MediaStreamTrack       = require('./MediaStreamTrack'),
+	videoElementsHandler   = require('./videoElementsHandler');
 
 
 /**
@@ -45,8 +52,15 @@ module.exports = {
 	RTCPeerConnection:     RTCPeerConnection,
 	RTCSessionDescription: RTCSessionDescription,
 	RTCIceCandidate:       RTCIceCandidate,
+	MediaDevices:          MediaDevices,
 	MediaStream:           MediaStream,
 	MediaStreamTrack:      MediaStreamTrack,
+
+	// Expose a function to refresh current videos rendering a MediaStream.
+	refreshVideos:         videoElementsHandler.refreshVideos,
+
+	// Expose a function to handle a video not yet inserted in the DOM.
+	observeVideo:          videoElementsHandler.observeVideo,
 
 	// Select audio output (earpiece or speaker).
 	selectAudioOutput:     selectAudioOutput,
@@ -70,6 +84,7 @@ module.exports = {
 	dump:                  dump,
 
 	// Debug Stores to see what happens internally.
+	mediaStreamRenderers:  mediaStreamRenderers,
 	mediaStreams:          mediaStreams,
 	nativeCallback:		   exec.nativeCallback
 };
@@ -79,9 +94,17 @@ turnOnSpeaker(true);
 requestPermission(true, true, function (result) {
 	console.log('requestPermission.result', result);
 	});
+
 domready(function () {
-	
+	// Let the MediaStream class and the videoElementsHandler share same MediaStreams container.
 	MediaStream.setMediaStreams(mediaStreams);
+	videoElementsHandler(mediaStreams, mediaStreamRenderers);
+
+	// refreshVideos on device orientation change to resize peers video
+	// while local video will resize du orientation change
+	window.addEventListener('resize', function () {
+		videoElementsHandler.refreshVideos();
+	});
 });
 
 function selectAudioOutput(output) {
@@ -183,7 +206,7 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	}
 
 	if (!navigator.mediaDevices) {
-		navigator.mediaDevices = {};
+		navigator.mediaDevices = new MediaDevices();
 	}
 
 	// Restore Callback support
@@ -203,6 +226,25 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.MediaStream                      = MediaStream;
 	window.webkitMediaStream                = MediaStream;
 	window.MediaStreamTrack                 = MediaStreamTrack;
+
+	// Apply CanvasRenderingContext2D.drawImage monkey patch
+	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
+	CanvasRenderingContext2D.prototype.drawImage = function (arg) {
+		var args = Array.prototype.slice.call(arguments);
+		var context = this;
+		if (arg instanceof HTMLVideoElement && arg.render) {
+			arg.render.save(function (data) {
+			    var img = new window.Image();
+			    img.addEventListener("load", function () {
+			    	args.splice(0, 1, img.src);
+			        drawImage.apply(context, args);
+			    });
+			    img.setAttribute("src", "data:image/jpg;base64," + data);
+		  	});
+		} else {
+			return drawImage.apply(context, args);
+		}
+	};
 }
 
 function dump() {

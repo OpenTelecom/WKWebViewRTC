@@ -32,6 +32,10 @@ var
 // Save original MediaStreamTrack
 var originalMediaStreamTrack = window.MediaStreamTrack || function dummyMediaStreamTrack() {};
 
+function newMediaStreamTrackId() {
+	return window.crypto.getRandomValues(new Uint32Array(4)).join('-');
+ }
+  
 function MediaStreamTrack(dataFromEvent) {
 	if (!dataFromEvent) {
 		throw new Error('Illegal constructor');
@@ -90,9 +94,17 @@ MediaStreamTrack.prototype.applyConstraints = function () {
 };
 
 MediaStreamTrack.prototype.clone = function () {
-	//throw new Error('Not implemented.');
-	// SHAM
-	return this;
+	var newTrackId = newMediaStreamTrackId();
+
+	exec.execNative(null, null, 'WKWebViewRTC', 'MediaStreamTrack_clone', [this.id, newTrackId]);
+
+	return new MediaStreamTrack({
+ 		id: newTrackId,
+ 		kind: this.kind,
+ 		label: this.label,
+ 		readyState: this.readyState,
+ 		enabled: this.enabled
+ 	});
 };
 
 MediaStreamTrack.prototype.getCapabilities = function () {

@@ -50,7 +50,7 @@ class iRTCPeerConnectionConfig {
 		
 		let sdpSemanticsConfig = pcConfig?.object(forKey: "sdpSemantics") as? String;
 		let sdpSemantics = (sdpSemanticsConfig != nil && allowedSdpSemantics[sdpSemanticsConfig!] != nil) ?
-			allowedSdpSemantics[sdpSemanticsConfig!] : RTCSdpSemantics.planB
+			allowedSdpSemantics[sdpSemanticsConfig!] : RTCSdpSemantics.unifiedPlan
 		
 		rtcConfiguration.sdpSemantics = sdpSemantics!;
 		

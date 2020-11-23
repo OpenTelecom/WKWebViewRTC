@@ -190,7 +190,15 @@ MediaStream.create = function (dataFromEvent) {
 		}
 	}
 
-	// Todo :
+	for (trackId in dataFromEvent.videoTracks) {
+		if (dataFromEvent.videoTracks.hasOwnProperty(trackId)) {
+			track = new MediaStreamTrack(dataFromEvent.videoTracks[trackId]);
+
+			stream._videoTracks[track.id] = track;
+
+			addListenerForTrackEnded.call(stream, track);
+		}
+	}
 
 	return stream;
 };
@@ -218,9 +226,16 @@ MediaStream.prototype.getAudioTracks = function () {
 MediaStream.prototype.getVideoTracks = function () {
 	debug('getVideoTracks()');
 
-	// Todo :
-	
-	return [];
+	var tracks = [],
+	id;
+
+	for (id in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(id)) {
+			tracks.push(this._videoTracks[id]);
+		}
+	}
+
+	return tracks;
 };
 
 
@@ -236,7 +251,11 @@ MediaStream.prototype.getTracks = function () {
 		}
 	}
 
-	// Todo :
+	for (id in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(id)) {
+			tracks.push(this._videoTracks[id]);
+		}
+	}
 
 	return tracks;
 };
@@ -262,7 +281,7 @@ MediaStream.prototype.addTrack = function (track) {
 	if (track.kind === 'audio') {
 		this._audioTracks[track.id] = track;
 	} else if (track.kind === 'video') {
-		// Todo :
+		this._videoTracks[track.id] = track;
 	} else {
 		throw new Error('unknown kind attribute: ' + track.kind);
 	}
@@ -290,7 +309,7 @@ MediaStream.prototype.removeTrack = function (track) {
 	if (track.kind === 'audio') {
 		delete this._audioTracks[track.id];
 	} else if (track.kind === 'video') {
-		// Todo :
+		delete this._videoTracks[track.id];
 	} else {
 		throw new Error('unknown kind attribute: ' + track.kind);
 	}
@@ -304,8 +323,12 @@ MediaStream.prototype.removeTrack = function (track) {
 
 
 MediaStream.prototype.clone = function () {
-	debug('clone()');
-	return new MediaStream(this);
+	var newStream = MediaStream();
+	this.getTracks().forEach(function (track) {
+		newStream.addTrack(track.clone());
+	});
+
+	return newStream;
 };
 
 // Backwards compatible API.
@@ -320,7 +343,11 @@ MediaStream.prototype.stop = function () {
 		}
 	}
 
-	// Todo :
+	for (trackId in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(trackId)) {
+			this._videoTracks[trackId].stop();
+		}
+	}
 };
 
 
@@ -392,7 +419,13 @@ function checkActive() {
 		}
 	}
 
-	// Todo :
+	for (trackId in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(trackId)) {
+			if (this._videoTracks[trackId].readyState !== 'ended') {
+				return;
+			}
+		}
+	}
 
 	debug('all tracks are ended, releasing MediaStream');
 	release();
@@ -423,7 +456,7 @@ function onEvent(data) {
 			if (track.kind === 'audio') {
 				this._audioTracks[track.id] = track;
 			} else if (track.kind === 'video') {
-				// Todo :
+				this._videoTracks[track.id] = track;
 			}
 			addListenerForTrackEnded.call(this, track);
 
@@ -441,7 +474,8 @@ function onEvent(data) {
 				track = this._audioTracks[data.track.id];
 				delete this._audioTracks[data.track.id];
 			} else if (data.track.kind === 'video') {
-				// Todo :
+				track = this._videoTracks[data.track.id];
+				delete this._videoTracks[data.track.id];
 			}
 
 			if (!track) {
@@ -452,6 +486,9 @@ function onEvent(data) {
 			event.track = track;
 
 			this.dispatchEvent(event);
+
+			// Also emit 'update' for the MediaStreamRenderer.
+			this.dispatchEvent(new Event('update'));
 
 			// Check whether the MediaStream still is active.
 			checkActive.call(this);
