@@ -606,7 +606,7 @@ class iRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 		var currentMediaStream : iMediaStream? = nil;
 
 		for (_, pluginMediaStream) in self.pluginMediaStreams {
-			if (pluginMediaStream.rtcMediaStream == stream) {
+			if (pluginMediaStream.rtcMediaStream.streamId == stream!.streamId) {
 				currentMediaStream = pluginMediaStream;
 				break;
 			}
@@ -637,7 +637,7 @@ class iRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 		var currentMediaStreamTrack : iMediaStreamTrack? = nil;
 
 		for (_, pluginMediaTrack) in self.pluginMediaTracks {
-			if (pluginMediaTrack.rtcMediaStreamTrack == rtpReceiver.track) {
+			if (pluginMediaTrack.rtcMediaStreamTrack.trackId == rtpReceiver.track!.trackId) {
 				currentMediaStreamTrack = pluginMediaTrack;
 				break;
 			}
