@@ -29,7 +29,6 @@ var
 	debug                  = require('debug')('iosrtc'),
 	exec                   = require('./IOSExec'),
 	domready               = require('domready'),
-
 	getUserMedia           = require('./getUserMedia'),
 	enumerateDevices       = require('./enumerateDevices'),
 	RTCPeerConnection      = require('./RTCPeerConnection'),
@@ -236,8 +235,9 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 			arg.render.save(function (data) {
 			    var img = new window.Image();
 			    img.addEventListener("load", function () {
-			    	args.splice(0, 1, img.src);
-			        drawImage.apply(context, args);
+			    	args.splice(0, 1, img);
+					drawImage.apply(context, args);
+					img.src = null;
 			    });
 			    img.setAttribute("src", "data:image/jpg;base64," + data);
 		  	});

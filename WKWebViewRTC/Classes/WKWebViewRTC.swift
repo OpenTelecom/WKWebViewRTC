@@ -38,6 +38,7 @@ public class WKWebViewRTC : NSObject {
         super.init()
 
 		// Make the web view transparent
+
 		pluginMediaStreams = [:]
 		pluginMediaStreamTracks = [:]
 		pluginMediaStreamRenderers = [:]
@@ -79,6 +80,8 @@ public class WKWebViewRTC : NSObject {
     func setWebView(webview:WKWebView?)
     {
         self.webView = webview
+        self.webView!.isOpaque = false
+        self.webView!.backgroundColor = UIColor.clear
         
     }
 
@@ -834,7 +837,23 @@ public class WKWebViewRTC : NSObject {
 		}
 
 		if self.pluginMediaStreams[newTrackId] == nil {
-			let rtcMediaStreamTrack = self.pluginMediaStreamTracks[existingTrackId]!.rtcMediaStreamTrack;
+			var rtcMediaStreamTrack = self.pluginMediaStreamTracks[existingTrackId]!.rtcMediaStreamTrack;
+			// twilio uses the sdp local description to map the track ids to the media id.
+			// if the original rtcMediaStreamTrack is not cloned, the rtcPeerConnection 
+			// will not add the track and as such will not be found by Twilio. 
+			// it is unable to do the mapping and find track and thus
+			// will not publish the local track.
+			if pluginMediaStreamTrack?.kind == "video" {
+				if let rtcVideoTrack = rtcMediaStreamTrack as? RTCVideoTrack{
+					NSLog("WKWebViewRTC#MediaStreamTrack_clone() cloning video source");
+					rtcMediaStreamTrack = self.rtcPeerConnectionFactory.videoTrack(with: rtcVideoTrack.source, trackId: newTrackId);
+				}
+			} else if pluginMediaStreamTrack?.kind == "audio" {
+				if let rtcAudioTrack = rtcMediaStreamTrack as? RTCAudioTrack{
+					NSLog("WKWebViewRTC#MediaStreamTrack_clone() cloning audio source");
+					rtcMediaStreamTrack = self.rtcPeerConnectionFactory.audioTrack(with: rtcAudioTrack.source, trackId: newTrackId);
+				}
+			}
 			let newPluginMediaStreamTrack = iMediaStreamTrack(rtcMediaStreamTrack: rtcMediaStreamTrack, trackId: newTrackId)
 
 			self.saveMediaStreamTrack(newPluginMediaStreamTrack)
@@ -995,13 +1014,26 @@ public class WKWebViewRTC : NSObject {
 			return;
 		}
 
-		let based64 = pluginMediaStreamRenderer!.save()
-		self.emit(command.callbackId,
-			  result: WkWebviewCmdResult(
-				status:.WkWebviewCmdStatus_OK,
-				messageAs: based64
+		// Perform the task on a background queue.
+		DispatchQueue.global().async {
+			pluginMediaStreamRenderer!.save(
+				callback: { (data: String) -> Void in
+					DispatchQueue.main.async {
+						self.emit(command.callbackId,
+							result: WkWebviewCmdResult(
+								status:.WkWebviewCmdStatus_OK,
+								messageAs: data
+							)
+						)
+					}
+				},
+				errback: { (error: String) -> Void in
+					self.emit(command.callbackId,
+                              result: WkWebviewCmdResult(status: .WkWebviewCmdStatus_ERROR, messageAs: error)
+					)
+				}
 			)
-		)
+		}
 	}
 
 	@objc(MediaStreamRenderer_close:) func MediaStreamRenderer_close(_ command: WkWebviewCommand) {
@@ -1132,7 +1164,7 @@ public class WKWebViewRTC : NSObject {
 		iRTCAudioController.selectAudioOutputSpeaker()
 	}
 
-	func dump(_ command: WkWebviewCommand) {
+	@objc(dump:) func dump(_ command: WkWebviewCommand) {
 		NSLog("WKWebViewRTC#dump()")
 
 		for (id, _) in self.pluginRTCPeerConnections {

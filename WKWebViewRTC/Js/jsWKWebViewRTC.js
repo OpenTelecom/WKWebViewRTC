@@ -1376,37 +1376,37 @@ MediaDevices.prototype.enumerateDevices = function () {
 MediaDevices.prototype.getSupportedConstraints = function () {
 	return {
 		// Supported
-		"height": true,
-		"width": true,
-		"deviceId": true,
-		"frameRate": true,
-		"sampleRate": true,
-		"aspectRatio": true,
+		height: true,
+		width: true,
+		deviceId: true,
+		frameRate: true,
+		sampleRate: true,
+		aspectRatio: true,
 		// Not Supported
-		"autoGainControl": false,
-		"brightness": false,
-		"channelCount": false,
-		"colorTemperature": false,
-		"contrast": false,
-		"echoCancellation": false,
-		"exposureCompensation": false,
-		"exposureMode": false,
-		"exposureTime": false,
-		"facingMode": true,
-		"focusDistance": false,
-		"focusMode": false,
-		"groupId": false,
-		"iso": false,
-		"latency": false,
-		"noiseSuppression": false,
-		"pointsOfInterest": false,
-		"resizeMode": false,
-		"sampleSize": false,
-		"saturation": false,
-		"sharpness": false,
-		"torch": false,
-		"whiteBalanceMode": false,
-		"zoom": false
+		autoGainControl: false,
+		brightness: false,
+		channelCount: false,
+		colorTemperature: false,
+		contrast: false,
+		echoCancellation: false,
+		exposureCompensation: false,
+		exposureMode: false,
+		exposureTime: false,
+		facingMode: true,
+		focusDistance: false,
+		focusMode: false,
+		groupId: false,
+		iso: false,
+		latency: false,
+		noiseSuppression: false,
+		pointsOfInterest: false,
+		resizeMode: false,
+		sampleSize: false,
+		saturation: false,
+		sharpness: false,
+		torch: false,
+		whiteBalanceMode: false,
+		zoom: false
 	};
 };
 
@@ -1469,8 +1469,9 @@ function MediaStream(arg, id) {
 	// new MediaStream(originalMediaStream) // stream
 	// new MediaStream(originalMediaStreamTrack[]) // tracks
 	if (
-		!(arg instanceof window.Blob) &&
-			(arg instanceof originalMediaStream && typeof arg.getBlobId === 'undefined') ||
+		(!(arg instanceof window.Blob) &&
+			arg instanceof originalMediaStream &&
+			typeof arg.getBlobId === 'undefined') ||
 				(Array.isArray(arg) && arg[0] instanceof originalMediaStreamTrack)
 	) {
 		return new originalMediaStream(arg);
@@ -1486,11 +1487,10 @@ function MediaStream(arg, id) {
 	// Extend returned MediaTream with custom MediaStream
 	var stream;
 	if (originalMediaStream !== window.Blob) {
-		stream = new (Function.prototype.bind.apply(originalMediaStream.bind(this), [])); // jshint ignore:line
-
-	// Fallback on Blob if originalMediaStream is not a MediaStream and Emulate EventTarget
+		stream = new (Function.prototype.bind.apply(originalMediaStream.bind(this), []))();
 	} else {
-		stream = new Blob([blobId], {
+	// Fallback on Blob if originalMediaStream is not a MediaStream and Emulate EventTarget
+	stream = new Blob([blobId], {
 			type: 'stream'
 		});
 
@@ -1515,6 +1515,8 @@ function MediaStream(arg, id) {
 	// Public but internal attributes.
 	stream.connected = false;
 
+	stream._addedToConnection = false;
+
 	// Private attributes.
 	stream._audioTracks = {};
 	stream._videoTracks = {};
@@ -1524,10 +1526,7 @@ function MediaStream(arg, id) {
 	mediaStreams[stream._blobId] = stream;
 
 	// Convert arg to array of tracks if possible
-	if (
-		(arg instanceof MediaStream) ||
-			(arg instanceof MediaStream.originalMediaStream)
-	) {
+	if (arg instanceof MediaStream || arg instanceof MediaStream.originalMediaStream) {
 		arg = arg.getTracks();
 	}
 
@@ -1562,6 +1561,14 @@ MediaStream.prototype = Object.create(originalMediaStream.prototype, {
 	label: {
 		get: function () {
 			return this._id;
+		}
+	},
+	addedToConnection: {
+		get: function () {
+			return this._addedToConnection;
+		},
+		set: function (value) {
+			this._addedToConnection = value;
 		}
 	}
 });
@@ -1817,6 +1824,10 @@ function checkActive() {
 	if (!this.active) {
 		return;
 	}
+	// Fixes Twilio fails to read a local video if the stream is released.
+	if (this._addedToConnection) {
+		return;
+	}
 
 	if (Object.keys(this._audioTracks).length === 0 && Object.keys(this._videoTracks).length === 0) {
 		debug('no tracks, releasing MediaStream');
@@ -1841,7 +1852,6 @@ function checkActive() {
 		}
 	}
 
-	debug('all tracks are ended, releasing MediaStream');
 	release();
 
 	function release() {
@@ -1855,7 +1865,6 @@ function checkActive() {
 	}
 }
 
-
 function onEvent(data) {
 	var type = data.type,
 		event,
@@ -1865,14 +1874,22 @@ function onEvent(data) {
 
 	switch (type) {
 		case 'addtrack':
-			track = new MediaStreamTrack(data.track);
-
-			if (track.kind === 'audio') {
-				this._audioTracks[track.id] = track;
-			} else if (track.kind === 'video') {
-				this._videoTracks[track.id] = track;
+			// check if a track already exists before initializing a new
+			// track and calling setListener again.
+			if (data.track.kind === 'audio') {
+				track = this._audioTracks[data.track.id];
+			} else if (data.track.kind === 'video') {
+				track = this._videoTracks[data.track.id];
 			}
-			addListenerForTrackEnded.call(this, track);
+			if (!track) {
+				track = new MediaStreamTrack(data.track);
+				if (track.kind === 'audio') {
+					this._audioTracks[track.id] = track;
+				} else if (track.kind === 'video') {
+					this._videoTracks[track.id] = track;
+				}
+				addListenerForTrackEnded.call(this, track);
+			}
 
 			event = new Event('addtrack');
 			event.track = track;
@@ -2078,9 +2095,21 @@ MediaStreamRenderer.prototype.refresh = function () {
 		paddingBottom,
 		paddingLeft,
 		paddingRight,
+		backgroundColorRgba,
 		self = this;
 
 	computedStyle = window.getComputedStyle(this.element);
+
+	// get background color
+	backgroundColorRgba = computedStyle.backgroundColor
+		.replace(/rgba?\((.*)\)/, '$1')
+		.split(',')
+		.map(function (x) {
+			return x.trim();
+		});
+	backgroundColorRgba[3] = '0';
+	this.element.style.backgroundColor = 'rgba(' + backgroundColorRgba.join(',') + ')';
+	backgroundColorRgba.length = 3;
 
 	// get padding values
 	paddingTop = parseInt(computedStyle.paddingTop) | 0;
@@ -2093,8 +2122,8 @@ MediaStreamRenderer.prototype.refresh = function () {
 	elementTop += paddingTop;
 
 	// fix width and height according to padding
-	elementWidth -= (paddingLeft + paddingRight);
-	elementHeight -= (paddingTop + paddingBottom);
+	elementWidth -= paddingLeft + paddingRight;
+	elementHeight -= paddingTop + paddingBottom;
 
 	videoViewWidth = elementWidth;
 	videoViewHeight = elementHeight;
@@ -2245,6 +2274,7 @@ MediaStreamRenderer.prototype.refresh = function () {
 			videoViewWidth: Math.round(videoViewWidth),
 			videoViewHeight: Math.round(videoViewHeight),
 			visible: visible,
+			backgroundColor: backgroundColorRgba.join(','),
 			opacity: opacity,
 			zIndex: zIndex,
 			mirrored: mirrored,
@@ -3023,23 +3053,23 @@ var candidateToJson = (function () {
 	};
 
 	var IPV4SEG = '(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])';
-	var IPV4ADDR = '(?:' + IPV4SEG + '\\.){3}' + IPV4SEG + '';
+	var IPV4ADDR = `(?:${IPV4SEG}\\.){3}${IPV4SEG}`;
 	var IPV6SEG = '[0-9a-fA-F]{1,4}';
 	var IPV6ADDR =
-	    '(?:' + IPV6SEG + ':){7,7}' + IPV6SEG + '|' +				// 1:2:3:4:5:6:7:8
-	    '(?:' + IPV6SEG + ':){1,7}:|' +								// 1::                              1:2:3:4:5:6:7::
-	    '(?:' + IPV6SEG + ':){1,6}:' + IPV6SEG + '|' +				// 1::8             1:2:3:4:5:6::8  1:2:3:4:5:6::8
-	    '(?:' + IPV6SEG + ':){1,5}(?::' + IPV6SEG + '){1,2}|' +		// 1::7:8           1:2:3:4:5::7:8  1:2:3:4:5::8
-	    '(?:' + IPV6SEG + ':){1,4}(?::' + IPV6SEG + '){1,3}|' +		// 1::6:7:8         1:2:3:4::6:7:8  1:2:3:4::8
-	    '(?:' + IPV6SEG + ':){1,3}(?::' + IPV6SEG + '){1,4}|' +		// 1::5:6:7:8       1:2:3::5:6:7:8  1:2:3::8
-	    '(?:' + IPV6SEG + ':){1,2}(?::' + IPV6SEG + '){1,5}|' +		// 1::4:5:6:7:8     1:2::4:5:6:7:8  1:2::8
-	    '' + IPV6SEG + ':(?:(?::' + IPV6SEG + '){1,6})|' +			// 1::3:4:5:6:7:8   1::3:4:5:6:7:8  1::8
-	    ':(?:(?::' + IPV6SEG + '){1,7}|:)|' +						// ::2:3:4:5:6:7:8  ::2:3:4:5:6:7:8 ::8       ::
-	    'fe80:(?::' + IPV6SEG + '){0,4}%[0-9a-zA-Z]{1,}|' +			// fe80::7:8%eth0   fe80::7:8%1     (link-local IPv6 addresses with zone index)
-	    '::(?:ffff(?::0{1,4}){0,1}:){0,1}' + IPV4ADDR + '|' +		// ::255.255.255.255   ::ffff:255.255.255.255  ::ffff:0:255.255.255.255 (IPv4-mapped IPv6 addresses and IPv4-translated addresses)
-	    '(?:' + IPV6SEG + ':){1,4}:' + IPV4ADDR + '';				// 2001:db8:3:4::192.0.2.33  64:ff9b::192.0.2.33 (IPv4-Embedded IPv6 Address)
+		`(?:${IPV6SEG}:){7,7}${IPV6SEG}|` + // 1:2:3:4:5:6:7:8
+		`(?:${IPV6SEG}:){1,7}:|` + // 1::                              1:2:3:4:5:6:7::
+		`(?:${IPV6SEG}:){1,6}:${IPV6SEG}|` + // 1::8             1:2:3:4:5:6::8  1:2:3:4:5:6::8
+		`(?:${IPV6SEG}:){1,5}(?::${IPV6SEG}){1,2}|` + // 1::7:8           1:2:3:4:5::7:8  1:2:3:4:5::8
+		`(?:${IPV6SEG}:){1,4}(?::${IPV6SEG}){1,3}|` + // 1::6:7:8         1:2:3:4::6:7:8  1:2:3:4::8
+		`(?:${IPV6SEG}:){1,3}(?::${IPV6SEG}){1,4}|` + // 1::5:6:7:8       1:2:3::5:6:7:8  1:2:3::8
+		`(?:${IPV6SEG}:){1,2}(?::${IPV6SEG}){1,5}|` + // 1::4:5:6:7:8     1:2::4:5:6:7:8  1:2::8
+		`${IPV6SEG}:(?:(?::${IPV6SEG}){1,6})|` + // 1::3:4:5:6:7:8   1::3:4:5:6:7:8  1::8
+		`:(?:(?::${IPV6SEG}){1,7}|:)|` + // ::2:3:4:5:6:7:8  ::2:3:4:5:6:7:8 ::8       ::
+		`fe80:(?::${IPV6SEG}){0,4}%[0-9a-zA-Z]{1,}|` + // fe80::7:8%eth0   fe80::7:8%1     (link-local IPv6 addresses with zone index)
+		`::(?:ffff(?::0{1,4}){0,1}:){0,1}${IPV4ADDR}|` + // ::255.255.255.255   ::ffff:255.255.255.255  ::ffff:0:255.255.255.255 (IPv4-mapped IPv6 addresses and IPv4-translated addresses)
+		`(?:${IPV6SEG}:){1,4}:${IPV4ADDR}`; // 2001:db8:3:4::192.0.2.33  64:ff9b::192.0.2.33 (IPv4-Embedded IPv6 Address)
 
-	var TOKEN = '[0-9a-zA-Z\\-\\.!\\%\\*_\\+\\`\\\'\\~]+';
+	var TOKEN = "[0-9a-zA-Z\\-\\.!\\%\\*_\\+\\`\\'\\~]+";
 
 	var CANDIDATE_TYPE = '';
 	Object.keys(candidateType).forEach(function (key) {
@@ -3051,7 +3081,7 @@ var candidateToJson = (function () {
 	  COMPONENT_ID: '[0-9]{1,5}',
 	  FOUNDATION: '[a-zA-Z0-9\\+\\/\\-]+',
 	  PRIORITY: '[0-9]{1,10}',
-	  TRANSPORT: transport.UPD + '|' + TOKEN,
+	  TRANSPORT: transport.UDP + '|' + TOKEN,
 	  CONNECTION_ADDRESS: IPV4ADDR + '|' + IPV6ADDR,
 	  PORT: '[0-9]{1,5}',
 	  CANDIDATE_TYPE: CANDIDATE_TYPE
@@ -3060,41 +3090,41 @@ var candidateToJson = (function () {
 	return function candidateToJson(iceCandidate) {
 	    var iceCandidateJson = null;
 
-	    if (iceCandidate && typeof iceCandidate === 'string') {
-	      var ICE_CANDIDATE_PATTERN = new RegExp(
-	        'candidate:(' + pattern.FOUNDATION + ')' +      // 10
-	        '\\s(' + pattern.COMPONENT_ID + ')' +           // 1
-	        '\\s(' + pattern.TRANSPORT + ')' +              // UDP
-	        '\\s(' + pattern.PRIORITY + ')' +               // 1845494271
-	        '\\s(' + pattern.CONNECTION_ADDRESS + ')' +     // 13.93.107.159
-	        '\\s(' + pattern.PORT + ')' +                   // 53705
-	        '\\s' +
-	        'typ' +
-	        '\\s(' + pattern.CANDIDATE_TYPE + ')' +         // typ prflx
-	        '(?:\\s' +
-	        'raddr' +
-	        '\\s(' + pattern.CONNECTION_ADDRESS + ')' +     // raddr 10.1.221.7
-	        '\\s' +
-	        'rport' +
-	        '\\s(' + pattern.PORT + '))?'                    // rport 54805
-	      );
+		if (iceCandidate && typeof iceCandidate === 'string') {
+			var ICE_CANDIDATE_PATTERN = new RegExp(
+				`candidate:(${pattern.FOUNDATION})` + // 10
+					`\\s(${pattern.COMPONENT_ID})` + // 1
+					`\\s(${pattern.TRANSPORT})` + // UDP
+					`\\s(${pattern.PRIORITY})` + // 1845494271
+					`\\s(${pattern.CONNECTION_ADDRESS})` + // 13.93.107.159
+					`\\s(${pattern.PORT})` + // 53705
+					'\\s' +
+					'typ' +
+					`\\s(${pattern.CANDIDATE_TYPE})` + // typ prflx
+					'(?:\\s' +
+					'raddr' +
+					`\\s(${pattern.CONNECTION_ADDRESS})` + // raddr 10.1.221.7
+					'\\s' +
+					'rport' +
+					`\\s(${pattern.PORT}))?` // rport 54805
+			);
 
-	      var iceCandidateFields = iceCandidate.match(ICE_CANDIDATE_PATTERN);
-	      if (iceCandidateFields) {
-	        iceCandidateJson = {};
-	        Object.keys(candidateFieldName).forEach(function (key, i) {
-	          // i+1 because match returns the entire match result
-	          // and the parentheses-captured matched results.
-	          if (iceCandidateFields.length > (i + 1) && iceCandidateFields[i + 1]) {
-	            iceCandidateJson[candidateFieldName[key]] = iceCandidateFields[i + 1];
-	          }
-	        });
-	      }
-	    }
+			var iceCandidateFields = iceCandidate.match(ICE_CANDIDATE_PATTERN);
+			if (iceCandidateFields) {
+				iceCandidateJson = {};
+				Object.keys(candidateFieldName).forEach(function (key, i) {
+					// i+1 because match returns the entire match result
+					// and the parentheses-captured matched results.
+					if (iceCandidateFields.length > i + 1 && iceCandidateFields[i + 1]) {
+						iceCandidateJson[candidateFieldName[key]] = iceCandidateFields[i + 1];
+					}
+				});
+			}
+		}
 
-	    return iceCandidateJson;
+		return iceCandidateJson;
 	};
-}());
+})();
 
 // See https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidate/RTCIceCandidate
 function RTCIceCandidate(data) {
@@ -3217,47 +3247,47 @@ RTCPeerConnection.prototype = Object.create(EventTarget.prototype);
 RTCPeerConnection.prototype.constructor = RTCPeerConnection;
 
 Object.defineProperties(RTCPeerConnection.prototype, {
-	'localDescription': {
+	localDescription: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		get: function() {
 			return this._localDescription;
 		}
 	},
-	'connectionState': {
+	connectionState: {
 		get: function() {
 			return this.iceConnectionState;
 		}
 	},
-	'onicecandidate': {
+	onicecandidate: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('icecandidate', callback);
 		}
 	},
-	'onaddstream': {
+	onaddstream: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('addstream', callback);
 		}
 	},
-	'ontrack': {
+	ontrack: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('track', callback);
 		}
 	},
-	'oniceconnectionstatechange': {
+	oniceconnectionstatechange: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('iceconnectionstatechange', callback);
 		}
 	},
-	'onnegotiationneeded': {
+	onnegotiationneeded: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
@@ -3606,15 +3636,7 @@ RTCPeerConnection.prototype.addTrack = function (track, stream) {
 
 	// Fix webrtc-adapter bad SHIM on addStream
 	if (stream) {
-		if (!(stream instanceof MediaStream.originalMediaStream)) {
-			throw new Error('addTrack() must be called with a MediaStream instance as argument');
-		}
-
-		if (!this.localStreams[stream.id]) {
-			this.localStreams[stream.id] = stream;
-		}
-
-		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_addStream', [this.pcId, stream.id]);
+		this.addStream(stream);
 	}
 
 	for (id in this.localStreams) {
@@ -3713,6 +3735,8 @@ RTCPeerConnection.prototype.addStream = function (stream) {
 
 	this.localStreams[stream.id] = stream;
 
+	stream.addedToConnection = true;
+
 	stream.getTracks().forEach(function (track) {
 		self.localTracks[track.id] = track;
 		track.addEventListener('ended', function () {
@@ -3789,7 +3813,7 @@ RTCPeerConnection.prototype.getStats = function (selector) {
 		throw new Errors.InvalidStateError('peerconnection is closed');
 	}
 
-	debug('getStats() [selector:%o]', selector);
+	// debug('getStats() [selector:%o]', selector);
 
 	return new Promise(function (resolve, reject) {
 		function onResultOK(array) {
@@ -3910,11 +3934,11 @@ function onEvent(data) {
 				event.candidate = null;
 			}
 			// Update _localDescription.
-			if (this._localDescription) {
+			if (this._localDescription && data.localDescription) {
 				this._localDescription.type = data.localDescription.type;
 				this._localDescription.sdp = data.localDescription.sdp;
-			} else {
-				this._localDescription = new RTCSessionDescription(data);
+			} else if (data.localDescription) {
+				this._localDescription = new RTCSessionDescription(data.localDescription);
 			}
 			break;
 
@@ -3922,7 +3946,7 @@ function onEvent(data) {
 			break;
 
 		case 'track':
-			var track = event.track = new MediaStreamTrack(data.track);
+			var track = (event.track = new MediaStreamTrack(data.track));
 			event.receiver = new RTCRtpReceiver({ track: track });
 			event.transceiver = new RTCRtpTransceiver({ receiver: event.receiver });
 			event.streams = [];
@@ -4162,6 +4186,10 @@ function RTCStatsResponse(data) {
 
 	this.namedItem = function () {
 		return null;
+	};
+
+	this.values = function () {
+		return data;
 	};
 }
 
@@ -4717,7 +4745,6 @@ var
 	debug                  = require('debug')('iosrtc'),
 	exec                   = require('./IOSExec'),
 	domready               = require('domready'),
-
 	getUserMedia           = require('./getUserMedia'),
 	enumerateDevices       = require('./enumerateDevices'),
 	RTCPeerConnection      = require('./RTCPeerConnection'),
@@ -4924,8 +4951,9 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 			arg.render.save(function (data) {
 			    var img = new window.Image();
 			    img.addEventListener("load", function () {
-			    	args.splice(0, 1, img.src);
-			        drawImage.apply(context, args);
+			    	args.splice(0, 1, img);
+					drawImage.apply(context, args);
+					img.src = null;
 			    });
 			    img.setAttribute("src", "data:image/jpg;base64," + data);
 		  	});

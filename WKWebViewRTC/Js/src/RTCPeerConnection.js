@@ -89,47 +89,47 @@ RTCPeerConnection.prototype = Object.create(EventTarget.prototype);
 RTCPeerConnection.prototype.constructor = RTCPeerConnection;
 
 Object.defineProperties(RTCPeerConnection.prototype, {
-	'localDescription': {
+	localDescription: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		get: function() {
 			return this._localDescription;
 		}
 	},
-	'connectionState': {
+	connectionState: {
 		get: function() {
 			return this.iceConnectionState;
 		}
 	},
-	'onicecandidate': {
+	onicecandidate: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('icecandidate', callback);
 		}
 	},
-	'onaddstream': {
+	onaddstream: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('addstream', callback);
 		}
 	},
-	'ontrack': {
+	ontrack: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('track', callback);
 		}
 	},
-	'oniceconnectionstatechange': {
+	oniceconnectionstatechange: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
 			return this.addEventListener('iceconnectionstatechange', callback);
 		}
 	},
-	'onnegotiationneeded': {
+	onnegotiationneeded: {
 		// Fix webrtc-adapter TypeError: Attempting to change the getter of an unconfigurable property.
 		configurable: true,
 		set: function (callback) {
@@ -478,15 +478,7 @@ RTCPeerConnection.prototype.addTrack = function (track, stream) {
 
 	// Fix webrtc-adapter bad SHIM on addStream
 	if (stream) {
-		if (!(stream instanceof MediaStream.originalMediaStream)) {
-			throw new Error('addTrack() must be called with a MediaStream instance as argument');
-		}
-
-		if (!this.localStreams[stream.id]) {
-			this.localStreams[stream.id] = stream;
-		}
-
-		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_addStream', [this.pcId, stream.id]);
+		this.addStream(stream);
 	}
 
 	for (id in this.localStreams) {
@@ -585,6 +577,8 @@ RTCPeerConnection.prototype.addStream = function (stream) {
 
 	this.localStreams[stream.id] = stream;
 
+	stream.addedToConnection = true;
+
 	stream.getTracks().forEach(function (track) {
 		self.localTracks[track.id] = track;
 		track.addEventListener('ended', function () {
@@ -661,7 +655,7 @@ RTCPeerConnection.prototype.getStats = function (selector) {
 		throw new Errors.InvalidStateError('peerconnection is closed');
 	}
 
-	debug('getStats() [selector:%o]', selector);
+	// debug('getStats() [selector:%o]', selector);
 
 	return new Promise(function (resolve, reject) {
 		function onResultOK(array) {
@@ -782,11 +776,11 @@ function onEvent(data) {
 				event.candidate = null;
 			}
 			// Update _localDescription.
-			if (this._localDescription) {
+			if (this._localDescription && data.localDescription) {
 				this._localDescription.type = data.localDescription.type;
 				this._localDescription.sdp = data.localDescription.sdp;
-			} else {
-				this._localDescription = new RTCSessionDescription(data);
+			} else if (data.localDescription) {
+				this._localDescription = new RTCSessionDescription(data.localDescription);
 			}
 			break;
 
@@ -794,7 +788,7 @@ function onEvent(data) {
 			break;
 
 		case 'track':
-			var track = event.track = new MediaStreamTrack(data.track);
+			var track = (event.track = new MediaStreamTrack(data.track));
 			event.receiver = new RTCRtpReceiver({ track: track });
 			event.transceiver = new RTCRtpTransceiver({ receiver: event.receiver });
 			event.streams = [];

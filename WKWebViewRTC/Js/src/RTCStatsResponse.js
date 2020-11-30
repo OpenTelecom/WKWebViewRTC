@@ -26,4 +26,8 @@ function RTCStatsResponse(data) {
 	this.namedItem = function () {
 		return null;
 	};
+
+	this.values = function () {
+		return data;
+	};
 }
