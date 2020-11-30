@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.15
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -257,7 +257,7 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 		UIGraphicsEndImageContext()
 		let imageData = snapshotImageFromMyView?.jpegData(compressionQuality: 1.0)
 		let strBase64 = imageData?.base64EncodedString(options: .lineLength64Characters)
-		
+
 		callback(strBase64!);
 	}
 	
