@@ -1,5 +1,5 @@
 /*
- * cordova-plugin-iosrtc v6.0.12
+ * cordova-plugin-iosrtc v6.0.17
  * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -55,8 +55,9 @@ function MediaStream(arg, id) {
 	// new MediaStream(originalMediaStream) // stream
 	// new MediaStream(originalMediaStreamTrack[]) // tracks
 	if (
-		!(arg instanceof window.Blob) &&
-			(arg instanceof originalMediaStream && typeof arg.getBlobId === 'undefined') ||
+		(!(arg instanceof window.Blob) &&
+			arg instanceof originalMediaStream &&
+			typeof arg.getBlobId === 'undefined') ||
 				(Array.isArray(arg) && arg[0] instanceof originalMediaStreamTrack)
 	) {
 		return new originalMediaStream(arg);
@@ -72,11 +73,10 @@ function MediaStream(arg, id) {
 	// Extend returned MediaTream with custom MediaStream
 	var stream;
 	if (originalMediaStream !== window.Blob) {
-		stream = new (Function.prototype.bind.apply(originalMediaStream.bind(this), [])); // jshint ignore:line
-
-	// Fallback on Blob if originalMediaStream is not a MediaStream and Emulate EventTarget
+		stream = new (Function.prototype.bind.apply(originalMediaStream.bind(this), []))();
 	} else {
-		stream = new Blob([blobId], {
+	// Fallback on Blob if originalMediaStream is not a MediaStream and Emulate EventTarget
+	stream = new Blob([blobId], {
 			type: 'stream'
 		});
 
@@ -101,6 +101,8 @@ function MediaStream(arg, id) {
 	// Public but internal attributes.
 	stream.connected = false;
 
+	stream._addedToConnection = false;
+
 	// Private attributes.
 	stream._audioTracks = {};
 	stream._videoTracks = {};
@@ -110,10 +112,7 @@ function MediaStream(arg, id) {
 	mediaStreams[stream._blobId] = stream;
 
 	// Convert arg to array of tracks if possible
-	if (
-		(arg instanceof MediaStream) ||
-			(arg instanceof MediaStream.originalMediaStream)
-	) {
+	if (arg instanceof MediaStream || arg instanceof MediaStream.originalMediaStream) {
 		arg = arg.getTracks();
 	}
 
@@ -148,6 +147,14 @@ MediaStream.prototype = Object.create(originalMediaStream.prototype, {
 	label: {
 		get: function () {
 			return this._id;
+		}
+	},
+	addedToConnection: {
+		get: function () {
+			return this._addedToConnection;
+		},
+		set: function (value) {
+			this._addedToConnection = value;
 		}
 	}
 });
@@ -190,7 +197,15 @@ MediaStream.create = function (dataFromEvent) {
 		}
 	}
 
-	// Todo :
+	for (trackId in dataFromEvent.videoTracks) {
+		if (dataFromEvent.videoTracks.hasOwnProperty(trackId)) {
+			track = new MediaStreamTrack(dataFromEvent.videoTracks[trackId]);
+
+			stream._videoTracks[track.id] = track;
+
+			addListenerForTrackEnded.call(stream, track);
+		}
+	}
 
 	return stream;
 };
@@ -218,9 +233,16 @@ MediaStream.prototype.getAudioTracks = function () {
 MediaStream.prototype.getVideoTracks = function () {
 	debug('getVideoTracks()');
 
-	// Todo :
-	
-	return [];
+	var tracks = [],
+	id;
+
+	for (id in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(id)) {
+			tracks.push(this._videoTracks[id]);
+		}
+	}
+
+	return tracks;
 };
 
 
@@ -236,7 +258,11 @@ MediaStream.prototype.getTracks = function () {
 		}
 	}
 
-	// Todo :
+	for (id in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(id)) {
+			tracks.push(this._videoTracks[id]);
+		}
+	}
 
 	return tracks;
 };
@@ -262,7 +288,7 @@ MediaStream.prototype.addTrack = function (track) {
 	if (track.kind === 'audio') {
 		this._audioTracks[track.id] = track;
 	} else if (track.kind === 'video') {
-		// Todo :
+		this._videoTracks[track.id] = track;
 	} else {
 		throw new Error('unknown kind attribute: ' + track.kind);
 	}
@@ -290,7 +316,7 @@ MediaStream.prototype.removeTrack = function (track) {
 	if (track.kind === 'audio') {
 		delete this._audioTracks[track.id];
 	} else if (track.kind === 'video') {
-		// Todo :
+		delete this._videoTracks[track.id];
 	} else {
 		throw new Error('unknown kind attribute: ' + track.kind);
 	}
@@ -304,8 +330,12 @@ MediaStream.prototype.removeTrack = function (track) {
 
 
 MediaStream.prototype.clone = function () {
-	debug('clone()');
-	return new MediaStream(this);
+	var newStream = MediaStream();
+	this.getTracks().forEach(function (track) {
+		newStream.addTrack(track.clone());
+	});
+
+	return newStream;
 };
 
 // Backwards compatible API.
@@ -320,7 +350,11 @@ MediaStream.prototype.stop = function () {
 		}
 	}
 
-	// Todo :
+	for (trackId in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(trackId)) {
+			this._videoTracks[trackId].stop();
+		}
+	}
 };
 
 
@@ -376,6 +410,10 @@ function checkActive() {
 	if (!this.active) {
 		return;
 	}
+	// Fixes Twilio fails to read a local video if the stream is released.
+	if (this._addedToConnection) {
+		return;
+	}
 
 	if (Object.keys(this._audioTracks).length === 0 && Object.keys(this._videoTracks).length === 0) {
 		debug('no tracks, releasing MediaStream');
@@ -392,9 +430,14 @@ function checkActive() {
 		}
 	}
 
-	// Todo :
+	for (trackId in this._videoTracks) {
+		if (this._videoTracks.hasOwnProperty(trackId)) {
+			if (this._videoTracks[trackId].readyState !== 'ended') {
+				return;
+			}
+		}
+	}
 
-	debug('all tracks are ended, releasing MediaStream');
 	release();
 
 	function release() {
@@ -408,7 +451,6 @@ function checkActive() {
 	}
 }
 
-
 function onEvent(data) {
 	var type = data.type,
 		event,
@@ -418,14 +460,22 @@ function onEvent(data) {
 
 	switch (type) {
 		case 'addtrack':
-			track = new MediaStreamTrack(data.track);
-
-			if (track.kind === 'audio') {
-				this._audioTracks[track.id] = track;
-			} else if (track.kind === 'video') {
-				// Todo :
+			// check if a track already exists before initializing a new
+			// track and calling setListener again.
+			if (data.track.kind === 'audio') {
+				track = this._audioTracks[data.track.id];
+			} else if (data.track.kind === 'video') {
+				track = this._videoTracks[data.track.id];
 			}
-			addListenerForTrackEnded.call(this, track);
+			if (!track) {
+				track = new MediaStreamTrack(data.track);
+				if (track.kind === 'audio') {
+					this._audioTracks[track.id] = track;
+				} else if (track.kind === 'video') {
+					this._videoTracks[track.id] = track;
+				}
+				addListenerForTrackEnded.call(this, track);
+			}
 
 			event = new Event('addtrack');
 			event.track = track;
@@ -441,7 +491,8 @@ function onEvent(data) {
 				track = this._audioTracks[data.track.id];
 				delete this._audioTracks[data.track.id];
 			} else if (data.track.kind === 'video') {
-				// Todo :
+				track = this._videoTracks[data.track.id];
+				delete this._videoTracks[data.track.id];
 			}
 
 			if (!track) {
@@ -452,6 +503,9 @@ function onEvent(data) {
 			event.track = track;
 
 			this.dispatchEvent(event);
+
+			// Also emit 'update' for the MediaStreamRenderer.
+			this.dispatchEvent(new Event('update'));
 
 			// Check whether the MediaStream still is active.
 			checkActive.call(this);

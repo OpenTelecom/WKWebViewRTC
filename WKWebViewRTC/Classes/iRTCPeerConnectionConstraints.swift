@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.12
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -93,7 +93,7 @@ class iRTCPeerConnectionConstraints {
 	// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer#RTCOfferOptions_dictionary
 	// TODO TODO voiceActivityDetection This option defaults to true
 	fileprivate static let allowedConstraints : Array = [
-		"iceRestart", 
+		"IceRestart", 
 		"OfferToReceiveVideo", 
 		"OfferToReceiveAudio",
 		"voiceActivityDetection"
@@ -120,6 +120,8 @@ class iRTCPeerConnectionConstraints {
 				finalKey =  "OfferToReceiveAudio";
 			} else if (finalKey == "offerToReceiveVideo") {
 				finalKey =  "OfferToReceiveVideo";
+			} else if (finalKey == "iceRestart") {
+				finalKey =  "IceRestart";
 			}
 			
 			// Filter to avoid injection

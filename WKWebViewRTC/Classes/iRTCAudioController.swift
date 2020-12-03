@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.12
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -13,16 +13,23 @@ import WebRTC
 
 class iRTCAudioController {
 	
-	static private var audioCategory = AVAudioSession.Category.playAndRecord
-	static private var audioModeDefault = AVAudioSession.Mode.default
-	
+	static private var audioCategory : AVAudioSession.Category = AVAudioSession.Category.playAndRecord
+
+	static private var audioCategoryOptions : AVAudioSession.CategoryOptions = [
+		AVAudioSession.CategoryOptions.mixWithOthers,
+		AVAudioSession.CategoryOptions.allowBluetooth,
+		AVAudioSession.CategoryOptions.allowAirPlay,
+		AVAudioSession.CategoryOptions.allowBluetoothA2DP
+	]
+
 	/*
 	 This mode is intended for Voice over IP (VoIP) apps and can only be used with the playAndRecord category. When this mode is used, the device’s tonal equalization is optimized for voice and the set of allowable audio routes is reduced to only those appropriate for voice chat.
 
 	  See: https://developer.apple.com/documentation/avfoundation/avaudiosession/mode/1616455-voicechat
 	 */
 	static private var audioMode = AVAudioSession.Mode.voiceChat
-	
+	static private var audioModeDefault : AVAudioSession.Mode = AVAudioSession.Mode.default
+
 	static private var audioInputSelected: AVAudioSessionPortDescription? = nil
 	
 	//
@@ -50,7 +57,7 @@ class iRTCAudioController {
 			try audioSession.setCategory(
 				iRTCAudioController.audioCategory,
 				mode: iRTCAudioController.audioMode,
-				options: .allowBluetooth
+				options: iRTCAudioController.audioCategoryOptions
 			)
 		} catch {
 			NSLog("iRTCAudioController#setCategory() | ERROR \(error)")

@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.12
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -19,17 +19,21 @@ class iMediaStreamTrack : NSObject {
 	var lostStates = Array<String>()
 	var renders: [String : iMediaStreamRenderer]
 
-	init(rtcMediaStreamTrack: RTCMediaStreamTrack) {
+	init(rtcMediaStreamTrack: RTCMediaStreamTrack, trackId: String? = nil) {
 		NSLog("iMediaStreamTrack#init()")
 
 		self.rtcMediaStreamTrack = rtcMediaStreamTrack
 
-		// Handle possible duplicate remote trackId with  janus or short duplicate name
-		// See: https://github.com/cordova-rtc/cordova-plugin-iosrtc/issues/432
-		if (rtcMediaStreamTrack.trackId.count < 36) {
-			self.id = rtcMediaStreamTrack.trackId + "_" + UUID().uuidString;
+		if (trackId == nil) {
+			// Handle possible duplicate remote trackId with  janus or short duplicate name
+			// See: https://github.com/cordova-rtc/cordova-plugin-iosrtc/issues/432
+			// if (rtcMediaStreamTrack.trackId.count<36) {
+				self.id = rtcMediaStreamTrack.trackId + "_" + UUID().uuidString;
+			// } else {
+			// 	self.id = rtcMediaStreamTrack.trackId;
+			// }
 		} else {
-			self.id = rtcMediaStreamTrack.trackId;
+			self.id = trackId!;
 		}
 
 		self.kind = rtcMediaStreamTrack.kind
@@ -38,6 +42,7 @@ class iMediaStreamTrack : NSObject {
 
 	deinit {
 		NSLog("iMediaStreamTrack#deinit()")
+		stop()
 	}
 
 	func run() {
@@ -69,6 +74,11 @@ class iMediaStreamTrack : NSObject {
 		_ eventListener: @escaping (_ data: NSDictionary) -> Void,
 		eventListenerForEnded: @escaping () -> Void
 	) {
+		if(self.eventListener != nil){
+			NSLog("iMediaStreamTrack#setListener():Error Listener already Set [kind:%@, id:%@]", String(self.kind), String(self.id));
+			return;
+		}
+
 		NSLog("iMediaStreamTrack#setListener() [kind:%@, id:%@]", String(self.kind), String(self.id))
 
 		self.eventListener = eventListener
@@ -127,6 +137,14 @@ class iMediaStreamTrack : NSObject {
 
 		// Let's try setEnabled(false), but it also fails.
 		self.rtcMediaStreamTrack.isEnabled = false
+		// eventListener could be null if the track is never used
+		if(self.eventListener != nil){
+			self.eventListener!([
+				"type": "statechange",
+				"readyState": "ended",
+				"enabled": self.rtcMediaStreamTrack.isEnabled ? true : false
+			])
+		}
 
 		for (_, render) in self.renders {
 			render.stop()

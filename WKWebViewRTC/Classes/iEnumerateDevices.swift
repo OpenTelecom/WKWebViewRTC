@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.12
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -60,8 +60,18 @@ class iEnumerateDevices {
 fileprivate func getAllVideoDevices() -> [MediaDeviceInfo] {
 	
 	var videoDevicesArr : [MediaDeviceInfo] = []
+	var deviceTypes: [AVCaptureDevice.DeviceType] = [.builtInTelephotoCamera, .builtInWideAngleCamera]
+	if #available(iOS 10.2, *) {
+		deviceTypes.append(.builtInDualCamera)
+
+		// Disabled tp prevent duplicate front camera
+		//if #available(iOS 11.1, *) {
+		//	deviceTypes.append(.builtInTrueDepthCamera)
+		//}
+	}
+
 	let videoDevices: [AVCaptureDevice] = AVCaptureDevice.DiscoverySession.init(
-		deviceTypes: [AVCaptureDevice.DeviceType.builtInWideAngleCamera, AVCaptureDevice.DeviceType.builtInDualCamera],
+		deviceTypes: deviceTypes,
 		mediaType: AVMediaType.video,
 		position: AVCaptureDevice.Position.unspecified
 	).devices
@@ -124,9 +134,7 @@ fileprivate func getAllAudioDevices() -> [MediaDeviceInfo] {
 	var audioDevicesArr : [MediaDeviceInfo] = []
 	let audioInputDevices: [AVAudioSessionPortDescription] = audioSession.availableInputs!
 	var bluetoothDevice: AVAudioSessionPortDescription? = nil
-	var isBluetoothConnected : Bool = false
 	var wiredDevice: AVAudioSessionPortDescription? = nil
-	var isWiredConnected : Bool = false
 	var builtMicDevice: AVAudioSessionPortDescription? = nil
 	
 	for audioInput in audioInputDevices {
@@ -146,21 +154,19 @@ fileprivate func getAllAudioDevices() -> [MediaDeviceInfo] {
 		
 		if audioInput.portType == .bluetoothHFP || audioInput.portType == .bluetoothA2DP {
 			bluetoothDevice = audioInput
-			isBluetoothConnected = true
 		}
 		
 		if audioInput.portType == .usbAudio || audioInput.portType == .headsetMic {
 			wiredDevice = audioInput
-			isWiredConnected = true
 		}
 	}
 	
 	// Initialize audioInputSelected. Priority: [Wired - Wireless - Built-In Microphone]
-	if isWiredConnected {
+	if wiredDevice != nil {
 		iRTCAudioController.saveInputAudioDevice(inputDeviceUID: wiredDevice!.uid)
-	} else if isBluetoothConnected {
+	} else if bluetoothDevice != nil {
 		iRTCAudioController.saveInputAudioDevice(inputDeviceUID: bluetoothDevice!.uid)
-	} else {
+	} else if builtMicDevice != nil {
 		iRTCAudioController.saveInputAudioDevice(inputDeviceUID: builtMicDevice!.uid)
 	}
 	return audioDevicesArr

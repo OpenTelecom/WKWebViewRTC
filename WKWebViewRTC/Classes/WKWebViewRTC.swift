@@ -38,6 +38,7 @@ public class WKWebViewRTC : NSObject {
         super.init()
 
 		// Make the web view transparent
+
 		pluginMediaStreams = [:]
 		pluginMediaStreamTracks = [:]
 		pluginMediaStreamRenderers = [:]
@@ -79,6 +80,8 @@ public class WKWebViewRTC : NSObject {
     func setWebView(webview:WKWebView?)
     {
         self.webView = webview
+        self.webView!.isOpaque = false
+        self.webView!.backgroundColor = UIColor.clear
         
     }
 
@@ -104,12 +107,14 @@ public class WKWebViewRTC : NSObject {
 		}
 	}
 
-	func onReset() {
+	@objc(onReset) func onReset() {
 		NSLog("WKWebViewRTC#onReset() | doing nothing")
+		cleanup();
 	}
 
-	func onAppTerminate() {
+	@objc(onAppTerminate) func onAppTerminate() {
 		NSLog("WKWebViewRTC#onAppTerminate() | doing nothing")
+		cleanup();
 	}
 
 	@objc(new_RTCPeerConnection:) func new_RTCPeerConnection(_ command: WkWebviewCommand) {
@@ -142,7 +147,9 @@ public class WKWebViewRTC : NSObject {
 				self.emit(command.callbackId, result: result)
 			},
 			eventListenerForAddStream: self.saveMediaStream,
-			eventListenerForRemoveStream: self.deleteMediaStream
+			eventListenerForRemoveStream: self.deleteMediaStream,
+			eventListenerForAddTrack: self.saveMediaStreamTrack,
+			eventListenerForRemoveTrack: self.deleteMediaStreamTrack
 		)
 
 		// Store the pluginRTCPeerConnection into the dictionary.
@@ -407,18 +414,11 @@ public class WKWebViewRTC : NSObject {
 	@objc(RTCPeerConnection_removeTrack:) func RTCPeerConnection_removeTrack(_ command: WkWebviewCommand) {
 		let pcId = command.argument(at: 0) as! Int
 		let trackId = command.argument(at: 1) as! String
-		let streamId = command.argument(at: 2) as! String
 		let pluginRTCPeerConnection = self.pluginRTCPeerConnections[pcId]
-		let pluginMediaStream = self.pluginMediaStreams[streamId]
 		let pluginMediaStreamTrack = self.pluginMediaStreamTracks[trackId]
 
 		if pluginRTCPeerConnection == nil {
 			NSLog("WKWebViewRTC#RTCPeerConnection_removeTrack() | ERROR: pluginRTCPeerConnection with pcId=%@ does not exist", String(pcId))
-			return;
-		}
-
-		if pluginMediaStream == nil {
-			NSLog("WKWebViewRTC#RTCPeerConnection_removeTrack() | ERROR: pluginMediaStream with id=%@ does not exist", String(streamId))
 			return;
 		}
 
@@ -430,7 +430,7 @@ public class WKWebViewRTC : NSObject {
 		self.queue.async { [weak pluginRTCPeerConnection, weak pluginMediaStreamTrack] in
 			pluginRTCPeerConnection?.removeTrack(pluginMediaStreamTrack!)
 			// TODO remove only if not used by other stream
-			self.deleteMediaStreamTrack(trackId)
+			// self.deleteMediaStreamTrack(pluginMediaStreamTrack!)
 		}
 	}
 
@@ -720,7 +720,7 @@ public class WKWebViewRTC : NSObject {
 
 		if self.pluginMediaStreams[streamId] == nil {
 			let rtcMediaStream : RTCMediaStream = self.rtcPeerConnectionFactory.mediaStream(withStreamId: streamId)
-			let pluginMediaStream = iMediaStream(rtcMediaStream: rtcMediaStream)
+			let pluginMediaStream = iMediaStream(rtcMediaStream: rtcMediaStream, streamId: streamId)
 			pluginMediaStream.run()
 
 			self.saveMediaStream(pluginMediaStream)
@@ -824,6 +824,43 @@ public class WKWebViewRTC : NSObject {
 		self.pluginMediaStreams[id] = nil
 	}
 
+	@objc(MediaStreamTrack_clone:) func MediaStreamTrack_clone(_ command: WkWebviewCommand) {
+		NSLog("WKWebViewRTC#MediaStreamTrack_clone()")
+
+		let existingTrackId = command.argument(at: 0) as! String
+		let newTrackId = command.argument(at: 1) as! String
+		let pluginMediaStreamTrack = self.pluginMediaStreamTracks[existingTrackId]
+
+		if pluginMediaStreamTrack == nil {
+			NSLog("WKWebViewRTC#MediaStreamTrack_clone() | ERROR: pluginMediaStreamTrack with id=%@ does not exist", String(existingTrackId))
+			return;
+		}
+
+		if self.pluginMediaStreams[newTrackId] == nil {
+			var rtcMediaStreamTrack = self.pluginMediaStreamTracks[existingTrackId]!.rtcMediaStreamTrack;
+			// twilio uses the sdp local description to map the track ids to the media id.
+			// if the original rtcMediaStreamTrack is not cloned, the rtcPeerConnection 
+			// will not add the track and as such will not be found by Twilio. 
+			// it is unable to do the mapping and find track and thus
+			// will not publish the local track.
+			if pluginMediaStreamTrack?.kind == "video" {
+				if let rtcVideoTrack = rtcMediaStreamTrack as? RTCVideoTrack{
+					NSLog("WKWebViewRTC#MediaStreamTrack_clone() cloning video source");
+					rtcMediaStreamTrack = self.rtcPeerConnectionFactory.videoTrack(with: rtcVideoTrack.source, trackId: newTrackId);
+				}
+			} else if pluginMediaStreamTrack?.kind == "audio" {
+				if let rtcAudioTrack = rtcMediaStreamTrack as? RTCAudioTrack{
+					NSLog("WKWebViewRTC#MediaStreamTrack_clone() cloning audio source");
+					rtcMediaStreamTrack = self.rtcPeerConnectionFactory.audioTrack(with: rtcAudioTrack.source, trackId: newTrackId);
+				}
+			}
+			let newPluginMediaStreamTrack = iMediaStreamTrack(rtcMediaStreamTrack: rtcMediaStreamTrack, trackId: newTrackId)
+
+			self.saveMediaStreamTrack(newPluginMediaStreamTrack)
+		} else {
+			NSLog("WKWebViewRTC#MediaStreamTrack_clone() | ERROR: pluginMediaStreamTrack with id=%@ already exist", String(newTrackId))
+		}
+	}
 
 	@objc(MediaStreamTrack_setListener:) func MediaStreamTrack_setListener(_ command: WkWebviewCommand) {
 		NSLog("WKWebViewRTC#MediaStreamTrack_setListener()")
@@ -851,7 +888,7 @@ public class WKWebViewRTC : NSObject {
 				},
 				eventListenerForEnded: { () -> Void in
 					// Remove the track from the container.
-					self.pluginMediaStreamTracks[pluginMediaStreamTrack!.id] = nil
+					self.deleteMediaStreamTrack(pluginMediaStreamTrack!);
 				}
 			)
 		}
@@ -977,13 +1014,26 @@ public class WKWebViewRTC : NSObject {
 			return;
 		}
 
-		let based64 = pluginMediaStreamRenderer!.save()
-		self.emit(command.callbackId,
-			  result: WkWebviewCmdResult(
-				status:.WkWebviewCmdStatus_OK,
-				messageAs: based64
+		// Perform the task on a background queue.
+		DispatchQueue.global().async {
+			pluginMediaStreamRenderer!.save(
+				callback: { (data: String) -> Void in
+					DispatchQueue.main.async {
+						self.emit(command.callbackId,
+							result: WkWebviewCmdResult(
+								status:.WkWebviewCmdStatus_OK,
+								messageAs: data
+							)
+						)
+					}
+				},
+				errback: { (error: String) -> Void in
+					self.emit(command.callbackId,
+                              result: WkWebviewCmdResult(status: .WkWebviewCmdStatus_ERROR, messageAs: error)
+					)
+				}
 			)
-		)
+		}
 	}
 
 	@objc(MediaStreamRenderer_close:) func MediaStreamRenderer_close(_ command: WkWebviewCommand) {
@@ -1114,7 +1164,7 @@ public class WKWebViewRTC : NSObject {
 		iRTCAudioController.selectAudioOutputSpeaker()
 	}
 
-	func dump(_ command: WkWebviewCommand) {
+	@objc(dump:) func dump(_ command: WkWebviewCommand) {
 		NSLog("WKWebViewRTC#dump()")
 
 		for (id, _) in self.pluginRTCPeerConnections {
@@ -1156,20 +1206,22 @@ public class WKWebViewRTC : NSObject {
 		}
 
 		// Store its PluginMediaStreamTracks' into the dictionary.
-		for (id, track) in pluginMediaStream.audioTracks {
-			if self.pluginMediaStreamTracks[id] == nil {
-				self.pluginMediaStreamTracks[id] = track
-			}
+		for (_, pluginMediaStreamTrack) in pluginMediaStream.audioTracks {
+			saveMediaStreamTrack(pluginMediaStreamTrack);
 		}
-		for (id, track) in pluginMediaStream.videoTracks {
-			if self.pluginMediaStreamTracks[id] == nil {
-				self.pluginMediaStreamTracks[id] = track
-			}
+
+		for (_, pluginMediaStreamTrack) in pluginMediaStream.videoTracks {
+			saveMediaStreamTrack(pluginMediaStreamTrack);
 		}
 	}
 
-	fileprivate func deleteMediaStream(_ id: String) {
-		self.pluginMediaStreams[id] = nil
+	fileprivate func deleteMediaStream(_ pluginMediaStream: iMediaStream) {
+		if (self.pluginMediaStreams[pluginMediaStream.id] != nil) {
+			self.pluginMediaStreams[pluginMediaStream.id] = nil
+			
+			// deinit should call stop by itself
+			//pluginMediaStream.stop();
+		}
 	}
 
 	fileprivate func saveMediaStreamTrack(_ pluginMediaStreamTrack: iMediaStreamTrack) {
@@ -1178,10 +1230,51 @@ public class WKWebViewRTC : NSObject {
 		}
 	}
 
-	fileprivate func deleteMediaStreamTrack(_ id: String) {
-		self.pluginMediaStreamTracks[id] = nil
+	fileprivate func deleteMediaStreamTrack(_ pluginMediaStreamTrack: iMediaStreamTrack) {
+		if (self.pluginMediaStreamTracks[pluginMediaStreamTrack.id] != nil) {
+			self.pluginMediaStreamTracks[pluginMediaStreamTrack.id] = nil
+			
+			// deinit should call stop by itself
+			//pluginMediaStreamTrack.stop();
+		}
 	}
     
+	fileprivate func cleanup() {
+
+		// Close all RTCPeerConnections
+		for (pcId, pluginRTCPeerConnection) in self.pluginRTCPeerConnections {
+			pluginRTCPeerConnection.close()
+			self.pluginRTCPeerConnections[pcId] = nil;
+		}
+
+		// Close all StreamRenderers
+		for (id, pluginMediaStreamRenderer) in self.pluginMediaStreamRenderers {
+			pluginMediaStreamRenderer.close()
+			self.pluginMediaStreamRenderers[id] = nil;
+		}
+
+		// Close All MediaStream
+		for (streamId, pluginMediaStream) in self.pluginMediaStreams {
+			// Store its PluginMediaStreamTracks' into the dictionary.
+			for (trackId, pluginMediaStreamTrack) in pluginMediaStream.audioTracks {
+				pluginMediaStream.removeTrack(pluginMediaStreamTrack);
+				deleteMediaStreamTrack(pluginMediaStreamTrack);
+			}
+
+			for (trackId, pluginMediaStreamTrack) in pluginMediaStream.videoTracks {
+				pluginMediaStream.removeTrack(pluginMediaStreamTrack);
+				deleteMediaStreamTrack(pluginMediaStreamTrack);
+			}
+
+			deleteMediaStream(pluginMediaStream);
+		}
+
+		// Close All MediaStreamTracks without MediaStream
+		for (trackId, pluginMediaStreamTrack) in self.pluginMediaStreamTracks {
+			deleteMediaStreamTrack(pluginMediaStreamTrack);
+		}
+	}
+	
     func native_console_log(didReceive message:WKScriptMessage)
     {
         print("console.log: \(message.body)")

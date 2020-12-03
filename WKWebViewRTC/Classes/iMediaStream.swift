@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.12
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -18,22 +18,26 @@ class iMediaStream : NSObject {
 	var videoTracks: [String : iMediaStreamTrack] = [:]
 	var eventListener: ((_ data: NSDictionary) -> Void)?
 	var eventListenerForAddTrack: ((_ pluginMediaStreamTrack: iMediaStreamTrack) -> Void)?
-	var eventListenerForRemoveTrack: ((_ id: String) -> Void)?
+	var eventListenerForRemoveTrack: ((_ pluginMediaStreamTrack: iMediaStreamTrack) -> Void)?
 
 	/**
 	 * Constructor for pc.onaddstream event and getUserMedia().
 	 */
-	init(rtcMediaStream: RTCMediaStream) {
+	init(rtcMediaStream: RTCMediaStream, streamId: String? = nil) {
 		NSLog("iMediaStream#init()")
 
-		self.rtcMediaStream = rtcMediaStream
+		self.rtcMediaStream = rtcMediaStream;
 
-		/// Handle possible duplicate remote streamId with janus or short duplicate name
-		// See: https://github.com/cordova-rtc/cordova-plugin-iosrtc/issues/432
-		if (rtcMediaStream.streamId.count < 36) {
-			self.id = rtcMediaStream.streamId + "_" + UUID().uuidString;
+		if (streamId == nil) {
+			// Handle possible duplicate remote trackId with  janus or short duplicate name
+			// See: https://github.com/cordova-rtc/cordova-plugin-iosrtc/issues/432
+			// if (rtcMediaStream.streamId.count < 36) {
+				self.id = rtcMediaStream.streamId + "_" + UUID().uuidString;
+			// } else {
+				// self.id = rtcMediaStream.streamId;
+			// }
 		} else {
-			self.id = rtcMediaStream.streamId;
+			self.id = streamId!;
 		}
 
 		for track: RTCMediaStreamTrack in (self.rtcMediaStream.audioTracks as Array<RTCMediaStreamTrack>) {
@@ -53,20 +57,26 @@ class iMediaStream : NSObject {
 
 	deinit {
 		NSLog("iMediaStream#deinit()")
-		for (id, _) in audioTracks {
-			if(self.eventListenerForRemoveTrack != nil) {
-				self.eventListenerForRemoveTrack!(id)
-			}
-		}
-		for (id, _) in videoTracks {
-			if(self.eventListenerForRemoveTrack != nil) {
-				self.eventListenerForRemoveTrack!(id)
-			}
-		}
+		stop();
 	}
 
 	func run() {
 		NSLog("iMediaStream#run()")
+	}
+
+	func stop() {
+		NSLog("iMediaStream#stop()")
+
+		for (_, track) in audioTracks {
+			if(self.eventListenerForRemoveTrack != nil) {
+				self.eventListenerForRemoveTrack!(track)
+			}
+		}
+		for (_, track) in videoTracks {
+			if(self.eventListenerForRemoveTrack != nil) {
+				self.eventListenerForRemoveTrack!(track)
+			}
+		}
 	}
 
 	func getJSON() -> NSDictionary {
@@ -90,7 +100,7 @@ class iMediaStream : NSObject {
 	func setListener(
 		_ eventListener: @escaping (_ data: NSDictionary) -> Void,
 		eventListenerForAddTrack: ((_ pluginMediaStreamTrack: iMediaStreamTrack) -> Void)?,
-		eventListenerForRemoveTrack: ((_ id: String) -> Void)?
+		eventListenerForRemoveTrack: ((_ pluginMediaStreamTrack: iMediaStreamTrack) -> Void)?
 	) {
 		NSLog("iMediaStream#setListener()")
 
@@ -165,7 +175,7 @@ class iMediaStream : NSObject {
 		}
 
 		if self.eventListener != nil {
-			self.eventListenerForRemoveTrack!(track.id)
+			self.eventListenerForRemoveTrack!(track)
 
 			self.eventListener!([
 				"type": "removetrack",

@@ -20,7 +20,7 @@ class ViewController: UIViewController {
         // Do any additional setup after loading the view, typically from a nib.
 		WKWebViewRTC(wkwebview: webView, contentController: webView.configuration.userContentController)
 		
-		webView.load(URLRequest(url: URL(string: "https://sip-phone-test.reper.io/?name=Display%20Name&websocket=wss://domain.com:5065&sipuri=sip_user@domain.com&password=password")!))
+		webView.load(URLRequest(url: URL(string: "https://cordova-rtc.github.io/cordova-plugin-iosrtc-sample/index.html")!))
     }
 }
 

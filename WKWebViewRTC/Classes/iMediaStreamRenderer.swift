@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.12
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -243,17 +243,22 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 		}
 
 		self.elementView.layer.cornerRadius = CGFloat(borderRadius)
+//		let rgb = backgroundColor.components(separatedBy: ",").map{ CGFloat(($0 as NSString).floatValue) / 256.0 }
+//		let color = UIColor(red: rgb[0], green: rgb[1], blue: rgb[2], alpha: 1)
+//		self.elementView.backgroundColor = color
 	}
 	
-	func save() -> String {
+	func save(callback: (_ data: String) -> Void,
+			  errback: (_ error: String) -> Void) {
 		NSLog("iMediaStreamRenderer#save()")
-		UIGraphicsBeginImageContextWithOptions(elementView.bounds.size, elementView.isOpaque, 0.0)
-		elementView.drawHierarchy(in: elementView.bounds, afterScreenUpdates: false)
+		UIGraphicsBeginImageContextWithOptions(videoView.bounds.size, videoView.isOpaque, 0.0)
+		videoView.drawHierarchy(in: videoView.bounds, afterScreenUpdates: false)
 		let snapshotImageFromMyView = UIGraphicsGetImageFromCurrentImageContext()
 		UIGraphicsEndImageContext()
 		let imageData = snapshotImageFromMyView?.jpegData(compressionQuality: 1.0)
 		let strBase64 = imageData?.base64EncodedString(options: .lineLength64Characters)
-		return strBase64!;
+
+		callback(strBase64!);
 	}
 	
 	func stop() {

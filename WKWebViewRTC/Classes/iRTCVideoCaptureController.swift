@@ -1,5 +1,5 @@
 /*
-* cordova-plugin-iosrtc v6.0.12
+* cordova-plugin-iosrtc v6.0.17
 * Cordova iOS plugin exposing the ̶f̶u̶l̶l̶ WebRTC W3C JavaScript APIs.
 * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
 * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -217,7 +217,7 @@ class iRTCVideoCaptureController : NSObject {
 		let deviceId = self.getConstrainDOMStringValue(constraint: "deviceId");
 		if (deviceId.count > 0) {
 			device = AVCaptureDevice(uniqueID: deviceId)
-			if (!device!.isConnected) {
+			if (device != nil && !device!.isConnected) {
 				device = nil
 			}
 			
