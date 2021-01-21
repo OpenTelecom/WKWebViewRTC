@@ -67,15 +67,12 @@ class iRTCAudioController {
 	// Setter function inserted by save specific audio device
 	static func saveInputAudioDevice(inputDeviceUID: String) -> Void {
 		let audioSession: AVAudioSession = AVAudioSession.sharedInstance()
-		let audioInput: [AVAudioSessionPortDescription] = audioSession.availableInputs!.filter({
-			(value:AVAudioSessionPortDescription) -> Bool in
-			return value.uid == inputDeviceUID
-		})
-        
-        if audioInput.count > 0
-        {
-            iRTCAudioController.audioInputSelected = audioInput[0]
-        }
+		if let audioInput: AVAudioSessionPortDescription = audioSession.availableInputs!.first(where: { $0.uid == inputDeviceUID }) {
+			iRTCAudioController.audioInputSelected = audioInput
+		} else {
+			NSLog("iRTCAudioController#saveInputAudioDevice() | ERROR invalid deviceId \(inputDeviceUID)")
+			iRTCAudioController.audioInputSelected = audioSession.availableInputs!.first
+		}
 	}
 	
 	// Setter function inserted by set specific audio device

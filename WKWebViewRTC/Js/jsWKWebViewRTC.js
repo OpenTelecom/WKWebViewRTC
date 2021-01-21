@@ -2407,6 +2407,7 @@ function MediaStreamTrack(dataFromEvent) {
 	this.kind = dataFromEvent.kind;
 	this.label = dataFromEvent.label;
 	this.muted = false;  // TODO: No "muted" property in ObjC API.
+	this.capabilities = dataFromEvent.capabilities;
 	this.readyState = dataFromEvent.readyState;
 
 	// Private attributes.
@@ -2440,11 +2441,11 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 });
 
 MediaStreamTrack.prototype.getConstraints = function () {
-	throw new Error('Not implemented.');
+	return {};
 };
 
 MediaStreamTrack.prototype.applyConstraints = function () {
-	throw new Error('Not implemented.');
+	return Promise.reject(new Error('applyConstraints is not implemented.'));
 };
 
 MediaStreamTrack.prototype.clone = function () {
@@ -2464,7 +2465,7 @@ MediaStreamTrack.prototype.clone = function () {
 MediaStreamTrack.prototype.getCapabilities = function () {
 	//throw new Error('Not implemented.');
 	// SHAM
-	return new MediaTrackCapabilities();
+	return new MediaTrackCapabilities(this.capabilities);
 };
 
 MediaStreamTrack.prototype.getSettings = function () {
@@ -4803,12 +4804,13 @@ module.exports = {
 	mediaStreams:          mediaStreams,
 	nativeCallback:		   exec.nativeCallback
 };
+
+// register global variables right after webview loading
 registerGlobals();
-initAudioDevices();
-turnOnSpeaker(true);
-requestPermission(true, true, function (result) {
-	console.log('requestPermission.result', result);
-	});
+
+MediaStreamTrack.prototype.clone = function () {
+	return this;
+};
 
 domready(function () {
 	// Let the MediaStream class and the videoElementsHandler share same MediaStreams container.
@@ -4920,10 +4922,6 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 		global.navigator = {};
 	}
 
-	if (!navigator.mediaDevices) {
-		navigator.mediaDevices = new MediaDevices();
-	}
-
 	// Restore Callback support
 	if (!doNotRestoreCallbacksSupport) {
 		restoreCallbacksSupport();
@@ -4931,9 +4929,22 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 
 	navigator.getUserMedia                  = getUserMedia;
 	navigator.webkitGetUserMedia            = getUserMedia;
-	navigator.mediaDevices.getUserMedia     = getUserMedia;
-	navigator.mediaDevices.enumerateDevices = enumerateDevices;
 
+ 	// Prevent WebRTC-adapter to overide navigator.mediaDevices after shim is applied since ios 14.3
+	Object.defineProperty(
+		navigator, 
+		'mediaDevices', 
+		{
+			value: new MediaDevices(),
+			writable: false
+		},
+		{
+			enumerable: false,
+			configurable: false,
+			writable: false,
+			value: 'static'
+		});
+	 
 	window.RTCPeerConnection                = RTCPeerConnection;
 	window.webkitRTCPeerConnection          = RTCPeerConnection;
 	window.RTCSessionDescription            = RTCSessionDescription;

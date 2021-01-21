@@ -53,6 +53,7 @@ function MediaStreamTrack(dataFromEvent) {
 	this.kind = dataFromEvent.kind;
 	this.label = dataFromEvent.label;
 	this.muted = false;  // TODO: No "muted" property in ObjC API.
+	this.capabilities = dataFromEvent.capabilities;
 	this.readyState = dataFromEvent.readyState;
 
 	// Private attributes.
@@ -86,11 +87,11 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 });
 
 MediaStreamTrack.prototype.getConstraints = function () {
-	throw new Error('Not implemented.');
+	return {};
 };
 
 MediaStreamTrack.prototype.applyConstraints = function () {
-	throw new Error('Not implemented.');
+	return Promise.reject(new Error('applyConstraints is not implemented.'));
 };
 
 MediaStreamTrack.prototype.clone = function () {
@@ -110,7 +111,7 @@ MediaStreamTrack.prototype.clone = function () {
 MediaStreamTrack.prototype.getCapabilities = function () {
 	//throw new Error('Not implemented.');
 	// SHAM
-	return new MediaTrackCapabilities();
+	return new MediaTrackCapabilities(this.capabilities);
 };
 
 MediaStreamTrack.prototype.getSettings = function () {
