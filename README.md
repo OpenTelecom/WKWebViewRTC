@@ -33,7 +33,7 @@ pod 'WKWebViewRTC'
 
 ## Build JS (WKWebViewRTC/Js/jsWKWebViewRTC.js)
 
-* From the WKWebViewRTC/Js run `npm i` and then `npm run-scipt build`
+* From the WKWebViewRTC/Js run `npm i` and then `npm run-script build`
 
 ### Third-Party Supported Library
 
