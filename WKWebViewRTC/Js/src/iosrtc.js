@@ -87,12 +87,13 @@ module.exports = {
 	mediaStreams:          mediaStreams,
 	nativeCallback:		   exec.nativeCallback
 };
+
+// register global variables right after webview loading
 registerGlobals();
-initAudioDevices();
-turnOnSpeaker(true);
-requestPermission(true, true, function (result) {
-	console.log('requestPermission.result', result);
-	});
+
+MediaStreamTrack.prototype.clone = function () {
+	return this;
+};
 
 domready(function () {
 	// Let the MediaStream class and the videoElementsHandler share same MediaStreams container.
@@ -204,10 +205,6 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 		global.navigator = {};
 	}
 
-	if (!navigator.mediaDevices) {
-		navigator.mediaDevices = new MediaDevices();
-	}
-
 	// Restore Callback support
 	if (!doNotRestoreCallbacksSupport) {
 		restoreCallbacksSupport();
@@ -215,9 +212,22 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 
 	navigator.getUserMedia                  = getUserMedia;
 	navigator.webkitGetUserMedia            = getUserMedia;
-	navigator.mediaDevices.getUserMedia     = getUserMedia;
-	navigator.mediaDevices.enumerateDevices = enumerateDevices;
 
+ 	// Prevent WebRTC-adapter to overide navigator.mediaDevices after shim is applied since ios 14.3
+	Object.defineProperty(
+		navigator, 
+		'mediaDevices', 
+		{
+			value: new MediaDevices(),
+			writable: false
+		},
+		{
+			enumerable: false,
+			configurable: false,
+			writable: false,
+			value: 'static'
+		});
+	 
 	window.RTCPeerConnection                = RTCPeerConnection;
 	window.webkitRTCPeerConnection          = RTCPeerConnection;
 	window.RTCSessionDescription            = RTCSessionDescription;
