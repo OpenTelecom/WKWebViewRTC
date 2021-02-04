@@ -29,7 +29,9 @@ public class WKWebViewRTC : NSObject {
 	var queue: DispatchQueue!
 	// Auto selecting output speaker
 	var audioOutputController: iRTCAudioController!
+    
     var webView : WKWebView?
+    var contentController: WKUserContentController?
     
 
 	// This is just called if <param name="onload" value="true" /> in plugin.xml.
@@ -51,7 +53,7 @@ public class WKWebViewRTC : NSObject {
         if let path = Bundle(for: type(of: self)).path(forResource: "jsWKWebViewRTC", ofType: "js") {
             if let bindingJS = try? String(contentsOfFile: path, encoding: .utf8) {
                 let script = WKUserScript(source: bindingJS, injectionTime: .atDocumentStart, forMainFrameOnly: false)
-                contentController?.addUserScript(script)
+                self.contentController?.addUserScript(script)
             }
         }
 		else {
@@ -107,6 +109,13 @@ public class WKWebViewRTC : NSObject {
 		}
 	}
 
+    public func dispose() {
+        self.cleanup()
+        
+        self.contentController?.removeAllUserScripts()
+        self.webView = nil
+    }
+    
 	@objc(onReset) func onReset() {
 		NSLog("WKWebViewRTC#onReset() | doing nothing")
 		cleanup();
