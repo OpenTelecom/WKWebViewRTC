@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   s.source           = { :git => 'https://github.com/OpenTelecom/WKWebViewRTC.git', :tag => s.version.to_s }
 
 	s.swift_version = '4.2'
-  s.ios.deployment_target = '8.0'
+  s.ios.deployment_target = '11.0'
 
   s.source_files = 'WKWebViewRTC/Classes/**/*'
 	s.resources = 'WKWebViewRTC/Js/jsWKWebViewRTC.js'
