@@ -304,6 +304,11 @@ public class WKWebViewRTC : NSObject {
 
 	@objc(RTCPeerConnection_addIceCandidate:) func RTCPeerConnection_addIceCandidate(_ command: WkWebviewCommand) {
 		NSLog("WKWebViewRTC#RTCPeerConnection_addIceCandidate()")
+        
+        if command.argument(at: 1) == nil {
+            NSLog("iosrtcPlugin#RTCPeerConnection_addIceCandidate() | ERROR: pluginRTCPeerConnection argument is NIL")
+            return;
+        }
 
 		let pcId = command.argument(at: 0) as! Int
 		let candidate = command.argument(at: 1) as! NSDictionary
