@@ -12,7 +12,19 @@
 		607FACDB1AFB9204008FA782 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 607FACD91AFB9204008FA782 /* Main.storyboard */; };
 		607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDC1AFB9204008FA782 /* Images.xcassets */; };
 		607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDE1AFB9204008FA782 /* LaunchScreen.xib */; };
+		7EE10A56265802BC002106AB /* WKWebViewRTC_ExampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE10A55265802BC002106AB /* WKWebViewRTC_ExampleTests.swift */; };
+		C66545EAFAA6C35DB6CA2184 /* Pods_WKWebViewRTC_Example.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BE6027618E5326D15BB46FD8 /* Pods_WKWebViewRTC_Example.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7EE10A58265802BC002106AB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 607FACC81AFB9204008FA782 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 607FACCF1AFB9204008FA782;
+			remoteInfo = WKWebViewRTC_Example;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		081BDE7624D12628001896C7 /* WKWebViewRTC.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = WKWebViewRTC.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -25,15 +37,27 @@
 		607FACDA1AFB9204008FA782 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		607FACDC1AFB9204008FA782 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		607FACDF1AFB9204008FA782 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
+		7EE10A53265802BC002106AB /* WKWebViewRTC_ExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WKWebViewRTC_ExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7EE10A55265802BC002106AB /* WKWebViewRTC_ExampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WKWebViewRTC_ExampleTests.swift; sourceTree = "<group>"; };
+		7EE10A57265802BC002106AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8AEFE6B0E7BA7E2E33BE4AAE /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		A0EDBD4CCC0BEDDAEE236367 /* Pods-WKWebViewRTC_Example.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WKWebViewRTC_Example.release.xcconfig"; path = "Target Support Files/Pods-WKWebViewRTC_Example/Pods-WKWebViewRTC_Example.release.xcconfig"; sourceTree = "<group>"; };
 		B35BA54F2CDD708693E71D05 /* WKWebViewRTC.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = WKWebViewRTC.podspec; path = ../WKWebViewRTC.podspec; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
+		BE6027618E5326D15BB46FD8 /* Pods_WKWebViewRTC_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_WKWebViewRTC_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB050538E6A08CA58E6DAF4E /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
 		EE6CE03A4ED4077B0CE8B3D6 /* Pods-WKWebViewRTC_Example.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WKWebViewRTC_Example.debug.xcconfig"; path = "Target Support Files/Pods-WKWebViewRTC_Example/Pods-WKWebViewRTC_Example.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		607FACCD1AFB9204008FA782 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C66545EAFAA6C35DB6CA2184 /* Pods_WKWebViewRTC_Example.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7EE10A50265802BC002106AB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -48,6 +72,7 @@
 			children = (
 				607FACF51AFB993E008FA782 /* Podspec Metadata */,
 				607FACD21AFB9204008FA782 /* Example for WKWebViewRTC */,
+				7EE10A54265802BC002106AB /* WKWebViewRTC_ExampleTests */,
 				607FACD11AFB9204008FA782 /* Products */,
 				7D4535BB2E06396403CCBF10 /* Pods */,
 				9FCA6F8BBA28C27F5334B33B /* Frameworks */,
@@ -58,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				607FACD01AFB9204008FA782 /* WKWebViewRTC_Example.app */,
+				7EE10A53265802BC002106AB /* WKWebViewRTC_ExampleTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -105,10 +131,20 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
+		7EE10A54265802BC002106AB /* WKWebViewRTC_ExampleTests */ = {
+			isa = PBXGroup;
+			children = (
+				7EE10A55265802BC002106AB /* WKWebViewRTC_ExampleTests.swift */,
+				7EE10A57265802BC002106AB /* Info.plist */,
+			);
+			path = WKWebViewRTC_ExampleTests;
+			sourceTree = "<group>";
+		};
 		9FCA6F8BBA28C27F5334B33B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				081BDE7624D12628001896C7 /* WKWebViewRTC.framework */,
+				BE6027618E5326D15BB46FD8 /* Pods_WKWebViewRTC_Example.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -135,19 +171,42 @@
 			productReference = 607FACD01AFB9204008FA782 /* WKWebViewRTC_Example.app */;
 			productType = "com.apple.product-type.application";
 		};
+		7EE10A52265802BC002106AB /* WKWebViewRTC_ExampleTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7EE10A5A265802BC002106AB /* Build configuration list for PBXNativeTarget "WKWebViewRTC_ExampleTests" */;
+			buildPhases = (
+				7EE10A4F265802BC002106AB /* Sources */,
+				7EE10A50265802BC002106AB /* Frameworks */,
+				7EE10A51265802BC002106AB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7EE10A59265802BC002106AB /* PBXTargetDependency */,
+			);
+			name = WKWebViewRTC_ExampleTests;
+			productName = WKWebViewRTC_ExampleTests;
+			productReference = 7EE10A53265802BC002106AB /* WKWebViewRTC_ExampleTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		607FACC81AFB9204008FA782 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0830;
+				LastSwiftUpdateCheck = 1250;
 				LastUpgradeCheck = 0830;
 				ORGANIZATIONNAME = CocoaPods;
 				TargetAttributes = {
 					607FACCF1AFB9204008FA782 = {
 						CreatedOnToolsVersion = 6.3.1;
 						LastSwiftMigration = 0900;
+					};
+					7EE10A52265802BC002106AB = {
+						CreatedOnToolsVersion = 12.5;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 607FACCF1AFB9204008FA782;
 					};
 				};
 			};
@@ -166,6 +225,7 @@
 			projectRoot = "";
 			targets = (
 				607FACCF1AFB9204008FA782 /* WKWebViewRTC_Example */,
+				7EE10A52265802BC002106AB /* WKWebViewRTC_ExampleTests */,
 			);
 		};
 /* End PBXProject section */
@@ -178,6 +238,13 @@
 				607FACDB1AFB9204008FA782 /* Main.storyboard in Resources */,
 				607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */,
 				607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7EE10A51265802BC002106AB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,7 +305,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7EE10A4F265802BC002106AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7EE10A56265802BC002106AB /* WKWebViewRTC_ExampleTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7EE10A59265802BC002106AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 607FACCF1AFB9204008FA782 /* WKWebViewRTC_Example */;
+			targetProxy = 7EE10A58265802BC002106AB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		607FACD91AFB9204008FA782 /* Main.storyboard */ = {
@@ -395,6 +478,63 @@
 			};
 			name = Release;
 		};
+		7EE10A5B265802BC002106AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = WKWebViewRTC_ExampleTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.WKWebViewRTC-ExampleTests.WKWebViewRTC-ExampleTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WKWebViewRTC_Example.app/WKWebViewRTC_Example";
+			};
+			name = Debug;
+		};
+		7EE10A5C265802BC002106AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = WKWebViewRTC_ExampleTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.WKWebViewRTC-ExampleTests.WKWebViewRTC-ExampleTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WKWebViewRTC_Example.app/WKWebViewRTC_Example";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -412,6 +552,15 @@
 			buildConfigurations = (
 				607FACF01AFB9204008FA782 /* Debug */,
 				607FACF11AFB9204008FA782 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7EE10A5A265802BC002106AB /* Build configuration list for PBXNativeTarget "WKWebViewRTC_ExampleTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7EE10A5B265802BC002106AB /* Debug */,
+				7EE10A5C265802BC002106AB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
