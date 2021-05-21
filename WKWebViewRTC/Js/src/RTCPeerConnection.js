@@ -282,6 +282,16 @@ RTCPeerConnection.prototype.setRemoteDescription = function (desc) {
 
 	debug('setRemoteDescription() [desc:%o]', desc);
 
+	// Remove extmap-allow-mixed sdp header
+	if (desc && desc.sdp && desc.sdp.indexOf('\na=extmap-allow-mixed') !== -1) {
+		desc = new RTCSessionDescription({
+			type: desc.type,
+			sdp: desc.sdp.split('\n').filter((line) => {
+				return line.trim() !== 'a=extmap-allow-mixed';
+			}).join('\n')
+		});
+	}
+
 	// "This is no longer necessary, however; RTCPeerConnection.setLocalDescription() and other
 	// methods which take SDP as input now directly accept an object conforming to the RTCSessionDescriptionInit dictionary,
 	// so you don't have to instantiate an RTCSessionDescription yourself.""
@@ -499,7 +509,7 @@ RTCPeerConnection.prototype.addTrack = function (track, stream) {
 	}
 
 	this.localTracks[track.id] = track;
-	
+
 	return new RTCRtpSender({
 		track: track
 	});
@@ -542,12 +552,12 @@ RTCPeerConnection.prototype.removeTrack = function (sender) {
 		for (id in this.localTracks) {
 			if (this.localTracks.hasOwnProperty(id)) {
 				if (track.id === id) {
-					exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeTrack', [this.pcId, track.id, null]);	
+					exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_removeTrack', [this.pcId, track.id, null]);
 					delete this.localTracks[track.id];
 				}
 			}
 		}
-	}	
+	}
 };
 
 RTCPeerConnection.prototype.getStreamById = function (id) {
@@ -804,7 +814,7 @@ function onEvent(data) {
 			track.addEventListener('ended', function () {
 				delete self.remoteTracks[track.id];
 			});
-			
+
 			break;
 
 		case 'addstream':
