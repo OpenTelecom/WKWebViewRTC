@@ -24,6 +24,7 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 	var videoView: RTCEAGLVideoView
 	var rtcAudioTrack: RTCAudioTrack?
 	var rtcVideoTrack: RTCVideoTrack?
+    var pluginVideoTrack: iMediaStreamTrack?
 
 	init(
 		webView: UIView,
@@ -111,7 +112,7 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 
 		if self.rtcVideoTrack != nil {
 			self.rtcVideoTrack!.add(self.videoView)
-			pluginVideoTrack?.registerRender(render: self)
+            self.pluginVideoTrack?.registerRender(render: self)
 		}
 	}
 
@@ -121,11 +122,13 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 		if self.pluginMediaStream == nil {
 			return
 		}
-
+        
+        let oldPluginVideoTrack: iMediaStreamTrack? = self.pluginVideoTrack
 		let oldRtcVideoTrack: RTCVideoTrack? = self.rtcVideoTrack
 
 		self.rtcAudioTrack = nil
 		self.rtcVideoTrack = nil
+        self.pluginVideoTrack = nil
 
 		// Take the first audio track.
 		for (_, track) in self.pluginMediaStream!.audioTracks {
@@ -135,6 +138,7 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 
 		// Take the first video track.
 		for (_, track) in pluginMediaStream!.videoTracks {
+            self.pluginVideoTrack = track
 			self.rtcVideoTrack = track.rtcMediaStreamTrack as? RTCVideoTrack
 			break
 		}
@@ -149,7 +153,7 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 		else if oldRtcVideoTrack != nil && self.rtcVideoTrack != nil &&
 			oldRtcVideoTrack!.trackId != self.rtcVideoTrack!.trackId {
 			NSLog("iMediaStreamRenderer#mediaStreamChanged() | has a new video track")
-
+            oldPluginVideoTrack?.unregisterRender(render: self)
 			oldRtcVideoTrack!.remove(self.videoView)
 			self.rtcVideoTrack!.add(self.videoView)
 		}
@@ -157,6 +161,11 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 		// Did not have video but now it has.
 		else if oldRtcVideoTrack == nil && self.rtcVideoTrack != nil {
 			NSLog("iMediaStreamRenderer#mediaStreamChanged() | video track added")
+            
+            if oldPluginVideoTrack != nil{
+                oldPluginVideoTrack?.unregisterRender(render: self)
+            }
+            self.pluginVideoTrack?.registerRender(render: self)
 
 			self.rtcVideoTrack!.add(self.videoView)
 		}
@@ -164,7 +173,8 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 		// Had video but now it has not.
 		else if oldRtcVideoTrack != nil && self.rtcVideoTrack == nil {
 			NSLog("iMediaStreamRenderer#mediaStreamChanged() | video track removed")
-
+            
+            oldPluginVideoTrack?.unregisterRender(render: self)
 			oldRtcVideoTrack!.remove(self.videoView)
 		}
 	}
@@ -286,7 +296,12 @@ class iMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 		if self.rtcVideoTrack != nil {
 			self.rtcVideoTrack!.remove(self.videoView)
 		}
-
+        
+        if self.pluginVideoTrack != nil {
+            self.pluginVideoTrack?.unregisterRender(render: self)
+        }
+        
+        self.pluginVideoTrack = nil
 		self.pluginMediaStream = nil
 		self.rtcAudioTrack = nil
 		self.rtcVideoTrack = nil
