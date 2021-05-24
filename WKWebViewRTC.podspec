@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'WKWebViewRTC'
-  s.version          = '0.4.1'
+  s.version          = '0.5.1'
   s.summary          = 'WebRTC library for WKWebView for Swift on iOS'
 
 # This description is used to generate tags and improve search results.
