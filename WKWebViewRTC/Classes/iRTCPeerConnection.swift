@@ -694,7 +694,7 @@ class iRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 	/** New track as been added. */
 	func peerConnection(_ peerConnection: RTCPeerConnection, didAdd rtpReceiver: RTCRtpReceiver, streams:[RTCMediaStream]) {
 
-		NSLog("iRTCPeerConnection | onaddtrack")
+		NSLog("iRTCPeerConnection | ontrack")
 
 		let pluginMediaTrack = getiMediaStreamTrack(rtpReceiver);
 
@@ -708,6 +708,11 @@ class iRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 			])
 		} else {
 			let pluginMediaStream = getiMediaStream(streams[0]);
+            
+            // Check if pluginMediaStream had already the new track, otherwise add new track
+            if (pluginMediaStream!.hasTrack(pluginMediaTrack!) == false) {
+                pluginMediaStream!.addTrack(pluginMediaTrack!);
+            }
 
 			self.eventListener([
 				"type": "track",

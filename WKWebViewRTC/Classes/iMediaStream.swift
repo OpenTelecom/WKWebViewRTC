@@ -108,6 +108,16 @@ class iMediaStream : NSObject {
 		self.eventListenerForAddTrack = eventListenerForAddTrack
 		self.eventListenerForRemoveTrack = eventListenerForRemoveTrack
 	}
+    
+    func hasTrack(_ pluginMediaStreamTrack: iMediaStreamTrack) -> Bool {
+        if pluginMediaStreamTrack.kind == "audio" {
+            return self.audioTracks[pluginMediaStreamTrack.id] != nil;
+        } else if pluginMediaStreamTrack.kind == "video" {
+            return self.videoTracks[pluginMediaStreamTrack.id] != nil;
+        } else {
+            return false
+        }
+    }
 
 	func addTrack(_ pluginMediaStreamTrack: iMediaStreamTrack) -> Bool {
 		NSLog("iMediaStream#addTrack()")
