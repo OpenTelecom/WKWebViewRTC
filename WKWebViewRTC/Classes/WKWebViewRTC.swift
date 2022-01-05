@@ -626,7 +626,17 @@ public class WKWebViewRTC : NSObject {
 
 		let pcId = command.argument(at: 0) as! Int
 		let dcId = command.argument(at: 1) as! Int
-		let data = command.argument(at: 2) as! Data
+		let dataArg = command.argument(at: 2);
+		var data: Data?
+		if let base64 = dataArg as? String {
+			data = Data(base64Encoded: base64)
+		} else if let rawData = dataArg as? Data {
+			data = rawData;
+		}
+		guard let data = data else {
+			NSLog("WKWebViewRTC#RTCPeerConnection_RTCDataChannel_sendBinary() | ERROR: data argument is invalid")
+			return;
+		}
 		let pluginRTCPeerConnection = self.pluginRTCPeerConnections[pcId]
 
 		if pluginRTCPeerConnection == nil {

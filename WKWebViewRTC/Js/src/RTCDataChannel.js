@@ -26,6 +26,15 @@ var
 
 debugerror.log = console.warn.bind(console);
 
+function str2ab(base64) {
+	const binaryString = window.atob(base64);
+	const len = binaryString.length;
+	const bytes = new Uint8Array(len);
+	for (var i = 0; i < len; i++) {
+		bytes[i] = binaryString.charCodeAt(i);
+	}
+	return bytes.buffer;
+}
 
 function RTCDataChannel(peerConnection, label, options, dataFromEvent) {
 	var self = this;
@@ -98,16 +107,25 @@ function RTCDataChannel(peerConnection, label, options, dataFromEvent) {
 		exec.execNative(onResultOK, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_setListener', [this.peerConnection.pcId, this.dcId]);
 	}
 
-	function onResultOK(data) {
+	function dataToEvent(data) {
 		if (data.type) {
-			onEvent.call(self, data);
-		// Special handler for received binary mesage.
-		} else {
-			onEvent.call(self, {
-				type: 'message',
-				message: data
-			});
+			return data;
 		}
+		if (data.Type === 'ArrayBuffer') {
+			return {
+				type: 'message',
+				message: str2ab(data.Data)
+			}
+		}
+		return {
+			type: 'message',
+			message
+		}
+	}
+
+	function onResultOK(data) {
+		const event = dataToEvent(data);
+		onEvent.call(self, event);
 	}
 }
 
@@ -126,6 +144,38 @@ Object.defineProperty(RTCDataChannel.prototype, 'binaryType', {
 	}
 });
 
+function ab2str(arrayBuffer) {
+	let binary_string = ''
+	bytes = new Uint8Array(arrayBuffer);
+	for (let i = 0; i < bytes.byteLength; i++) {
+		binary_string += String.fromCharCode(bytes[i]);
+	}
+	const base64String = window.btoa(binary_string);
+	return base64String;
+}
+
+function getStringRepresentation(data) {
+	let buffer;
+	if (window.ArrayBuffer && data instanceof window.ArrayBuffer) {
+		buffer = data;
+	} else if (
+		(window.Int8Array && data instanceof window.Int8Array) ||
+		(window.Uint8Array && data instanceof window.Uint8Array) ||
+		(window.Uint8ClampedArray && data instanceof window.Uint8ClampedArray) ||
+		(window.Int16Array && data instanceof window.Int16Array) ||
+		(window.Uint16Array && data instanceof window.Uint16Array) ||
+		(window.Int32Array && data instanceof window.Int32Array) ||
+		(window.Uint32Array && data instanceof window.Uint32Array) ||
+		(window.Float32Array && data instanceof window.Float32Array) ||
+		(window.Float64Array && data instanceof window.Float64Array) ||
+		(window.DataView && data instanceof window.DataView)
+	) {
+		buffer = data.buffer;
+	}
+	if (!buffer) throw new Error('Invalid data type');
+
+	return ab2str(buffer);
+}
 
 RTCDataChannel.prototype.send = function (data) {
 	if (isClosed.call(this) || this.readyState !== 'open') {
@@ -140,23 +190,9 @@ RTCDataChannel.prototype.send = function (data) {
 
 	if (typeof data === 'string' || data instanceof String) {
 		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendString', [this.peerConnection.pcId, this.dcId, data]);
-	} else if (window.ArrayBuffer && data instanceof window.ArrayBuffer) {
-		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendBinary', [this.peerConnection.pcId, this.dcId, data]);
-	} else if (
-		(window.Int8Array && data instanceof window.Int8Array) ||
-		(window.Uint8Array && data instanceof window.Uint8Array) ||
-		(window.Uint8ClampedArray && data instanceof window.Uint8ClampedArray) ||
-		(window.Int16Array && data instanceof window.Int16Array) ||
-		(window.Uint16Array && data instanceof window.Uint16Array) ||
-		(window.Int32Array && data instanceof window.Int32Array) ||
-		(window.Uint32Array && data instanceof window.Uint32Array) ||
-		(window.Float32Array && data instanceof window.Float32Array) ||
-		(window.Float64Array && data instanceof window.Float64Array) ||
-		(window.DataView && data instanceof window.DataView)
-	) {
-		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendBinary', [this.peerConnection.pcId, this.dcId, data.buffer]);
 	} else {
-		throw new Error('invalid data type');
+		const stringifiedData = getStringRepresentation(data);
+		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendBinary', [this.peerConnection.pcId, this.dcId, stringifiedData]);
 	}
 };
 
