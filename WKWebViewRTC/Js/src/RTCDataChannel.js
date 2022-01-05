@@ -126,6 +126,38 @@ Object.defineProperty(RTCDataChannel.prototype, 'binaryType', {
 	}
 });
 
+function ab2str(arrayBuffer) {
+	let binary_string = ''
+	bytes = new Uint8Array(arrayBuffer);
+	for (let i = 0; i < bytes.byteLength; i++) {
+		binary_string += String.fromCharCode(bytes[i]);
+	}
+	const base64String = window.btoa(binary_string);
+	return base64String;
+}
+
+function getStringRepresentation(data) {
+	let buffer;
+	if (window.ArrayBuffer && data instanceof window.ArrayBuffer) {
+		buffer = data;
+	} else if (
+		(window.Int8Array && data instanceof window.Int8Array) ||
+		(window.Uint8Array && data instanceof window.Uint8Array) ||
+		(window.Uint8ClampedArray && data instanceof window.Uint8ClampedArray) ||
+		(window.Int16Array && data instanceof window.Int16Array) ||
+		(window.Uint16Array && data instanceof window.Uint16Array) ||
+		(window.Int32Array && data instanceof window.Int32Array) ||
+		(window.Uint32Array && data instanceof window.Uint32Array) ||
+		(window.Float32Array && data instanceof window.Float32Array) ||
+		(window.Float64Array && data instanceof window.Float64Array) ||
+		(window.DataView && data instanceof window.DataView)
+	) {
+		buffer = data.buffer;
+	}
+	if (!buffer) throw new Error('Invalid data type');
+
+	return ab2str(buffer);
+}
 
 RTCDataChannel.prototype.send = function (data) {
 	if (isClosed.call(this) || this.readyState !== 'open') {
@@ -140,23 +172,9 @@ RTCDataChannel.prototype.send = function (data) {
 
 	if (typeof data === 'string' || data instanceof String) {
 		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendString', [this.peerConnection.pcId, this.dcId, data]);
-	} else if (window.ArrayBuffer && data instanceof window.ArrayBuffer) {
-		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendBinary', [this.peerConnection.pcId, this.dcId, data]);
-	} else if (
-		(window.Int8Array && data instanceof window.Int8Array) ||
-		(window.Uint8Array && data instanceof window.Uint8Array) ||
-		(window.Uint8ClampedArray && data instanceof window.Uint8ClampedArray) ||
-		(window.Int16Array && data instanceof window.Int16Array) ||
-		(window.Uint16Array && data instanceof window.Uint16Array) ||
-		(window.Int32Array && data instanceof window.Int32Array) ||
-		(window.Uint32Array && data instanceof window.Uint32Array) ||
-		(window.Float32Array && data instanceof window.Float32Array) ||
-		(window.Float64Array && data instanceof window.Float64Array) ||
-		(window.DataView && data instanceof window.DataView)
-	) {
-		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendBinary', [this.peerConnection.pcId, this.dcId, data.buffer]);
 	} else {
-		throw new Error('invalid data type');
+		const stringifiedData = getStringRepresentation(data);
+		exec.execNative(null, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_sendBinary', [this.peerConnection.pcId, this.dcId, stringifiedData]);
 	}
 };
 
