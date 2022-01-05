@@ -26,6 +26,15 @@ var
 
 debugerror.log = console.warn.bind(console);
 
+function str2ab(base64) {
+	const binaryString = window.atob(base64);
+	const len = binaryString.length;
+	const bytes = new Uint8Array(len);
+	for (var i = 0; i < len; i++) {
+		bytes[i] = binaryString.charCodeAt(i);
+	}
+	return bytes.buffer;
+}
 
 function RTCDataChannel(peerConnection, label, options, dataFromEvent) {
 	var self = this;
@@ -98,16 +107,25 @@ function RTCDataChannel(peerConnection, label, options, dataFromEvent) {
 		exec.execNative(onResultOK, null, 'WKWebViewRTC', 'RTCPeerConnection_RTCDataChannel_setListener', [this.peerConnection.pcId, this.dcId]);
 	}
 
-	function onResultOK(data) {
+	function dataToEvent(data) {
 		if (data.type) {
-			onEvent.call(self, data);
-		// Special handler for received binary mesage.
-		} else {
-			onEvent.call(self, {
-				type: 'message',
-				message: data
-			});
+			return data;
 		}
+		if (data.Type === 'ArrayBuffer') {
+			return {
+				type: 'message',
+				message: str2ab(data.Data)
+			}
+		}
+		return {
+			type: 'message',
+			message
+		}
+	}
+
+	function onResultOK(data) {
+		const event = dataToEvent(data);
+		onEvent.call(self, event);
 	}
 }
 
