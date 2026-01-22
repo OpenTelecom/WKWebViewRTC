@@ -50,16 +50,21 @@ public class WKWebViewRTC : NSObject {
 
         setWebView(webview: wkwebview)
         
-        if let path = Bundle(for: type(of: self)).path(forResource: "jsWKWebViewRTC", ofType: "js") {
-            if let bindingJS = try? String(contentsOfFile: path, encoding: .utf8) {
-                let script = WKUserScript(source: bindingJS, injectionTime: .atDocumentStart, forMainFrameOnly: false)
-                self.userContentController?.addUserScript(script)
-            }
+		let jsURL =
+            Bundle.module.url(forResource: "jsWKWebViewRTC", withExtension: "js")
+            ?? Bundle(for: type(of: self)).url(forResource: "jsWKWebViewRTC", withExtension: "js")
+
+        guard let jsURL, let bindingJS = try? String(contentsOf: jsURL, encoding: .utf8) else {
+            NSLog("Failed to add iOS RTC script")
+            return
         }
-		else {
-			NSLog("Failed to add iosrtc script")
-			return
-		}
+
+        let script = WKUserScript(
+            source: bindingJS,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+        self.userContentController?.addUserScript(script)
         
 		// Initialize DTLS stuff.
 		RTCInitializeSSL()
